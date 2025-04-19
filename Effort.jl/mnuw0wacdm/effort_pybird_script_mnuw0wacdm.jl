@@ -6,7 +6,7 @@ using JSON3
 using Random
 using PyCall
 
-addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulatorz-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
 @everywhere using PyCall
 @everywhere begin
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
