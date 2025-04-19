@@ -25,7 +25,7 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         cosmo_params = {
             "output": "mPk",                   # Request the matter power spectrum (mPk)
             "P_k_max_h/Mpc": 20.0,             # Maximum k value (in units of h/Mpc)
-            "z_pk": "0.0,3",                  # Redshift at which to evaluate the power spectrum
+            "z_pk": "0.0,3.",                  # Redshift at which to evaluate the power spectrum
             "h": CosmoDict["H0"] / 100,        # Hubble parameter
             "omega_b": CosmoDict["ombh2"],                # Baryon density parameter
             "omega_cdm": CosmoDict["omch2"],   # Cold dark matter density parameter
@@ -64,7 +64,7 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         # Initialize Correlator
         N = Correlator()
         dk = 0.004
-        kd = np.arange(0.001, 0.4, dk)
+        kd = np.arange(0.001, 0.3, dk)
 
         # Set parameters for the correlator
         N.set({
@@ -114,6 +114,8 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
             #print(PT.kv, PT.p0ktable, PT.p2ktable, PT.p4ktable)
             # Sample array
             if any(isnan, P11l)
+                @info CosmoDict
+                @info P11l
                 @error "There are nan values!"
             elseif any(isnan, Ploopl)
                 @error "There are nan values!"
