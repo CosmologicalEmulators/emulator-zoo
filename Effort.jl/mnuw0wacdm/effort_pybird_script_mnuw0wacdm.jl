@@ -94,10 +94,6 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         return kk, pk_lin, kd, P11l, Ploopl, Pctl
     """
 
-
-
-
-
     n = 10000
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     s_cond = [s[8, i]+s[9, i] for i in 1:n]
@@ -111,8 +107,6 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
             rand_str = root_path * "/" * randstring(10)
             kk, Plin, kd, P11l, Ploopl, Pctl = py"pybird"(CosmoDict)
             @info "EFT computed"
-            #print(PT.kv, PT.p0ktable, PT.p2ktable, PT.p4ktable)
-            # Sample array
             if any(isnan, P11l)
                 @info CosmoDict
                 @info P11l
@@ -133,9 +127,6 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
                 open(rand_str * "/effort_dict.json", "w") do io
                     JSON3.write(io, CosmoDict)
                 end
-                #open(rand_str*"/check_AP_dict.json", "w") do io
-                #    JSON3.write(io, check_AP)
-                #end
                 @info "File saved!"
             end
         catch e
@@ -143,7 +134,6 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
             println(CosmoDict)
         end
     end
-
 end
 
 EmulatorsTrainer.compute_dataset(s, pars, root_dir, pybird_script)
