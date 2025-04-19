@@ -25,7 +25,7 @@ Please do not feed the models
 
 Welcome to the `emulator-zoo`, a repository within the [CosmologicalEmulators](https://github.com/CosmologicalEmulators) organization. This repository serves as a centralized collection of scripts and code necessary to generate training data, train, validate, and utilize emulators for various cosmological observables, such as the Cosmic Microwave Background (CMB) power spectra and galaxy power spectrum multipoles.
 
-Our goal is to provide a reproducible framework for developing and deploying high-accuracy cosmological emulators. By housing the training and validation code alongside the necessary configurations and **scripts for both downloading existing datasets from Zenodo and generating custom datasets locally**, we ensure that the emulators can be retrained, verified, and adapted by anyone. This repository heavily leverages the capabilities of the `EmulatorsTrainer.jl` Julia package for streamlined emulator development workflows.
+Our goal is to provide a reproducible framework for developing and deploying high-accuracy cosmological emulators. By housing the training and validation code alongside the necessary configurations and **scripts for both downloading existing datasets from Zenodo and generating custom datasets locally**, we ensure that the emulators can be retrained, verified, and adapted by anyone. This repository heavily leverages the capabilities of the [`EmulatorsTrainer.jl`](https://github.com/CosmologicalEmulators/EmulatorsTrainer.jl) Julia package for streamlined emulator development workflows.
 
 ## Features
 
@@ -34,7 +34,7 @@ Our goal is to provide a reproducible framework for developing and deploying hig
 * **Reproducible Training:** Contains the exact scripts and configurations used to train the emulators.
 * **Validation Framework:** Includes code and procedures for validating the performance and accuracy of trained emulators.
 * **Diverse Observables:** Supports the emulation of key cosmological observables like CMB and galaxy power spectra.
-* **`EmulatorsTrainer.jl` Integration:** Built upon the robust `EmulatorsTrainer.jl` package for efficient and standardized training pipelines.
+* **`EmulatorsTrainer.jl` Integration:** Built upon the `EmulatorsTrainer.jl` package for efficient and standardized training pipelines.
 * **Centralized Repository:** Provides a single location for accessing and contributing to the collection of cosmological emulators.
 
 ## Installation
