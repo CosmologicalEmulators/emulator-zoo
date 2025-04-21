@@ -189,3 +189,8 @@ dest = joinpath(folder_output, "postprocessing.py")
 run(`cp postprocessing.py $dest`)
 dest = joinpath(folder_output, "postprocessing.jl")
 run(`cp postprocessing.jl $dest`)
+dest = joinpath(folder_output, "nn_setup.json")
+json_str = JSON.json(NN_dict)
+open(dest, "w") do file
+    write(file, json_str)
+end
