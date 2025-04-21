@@ -20,3 +20,6 @@ for ell in ells
         run(bsub_command)
     end
 end
+
+run("cp biascontraction.py /farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm/")
+run("cp biascontraction.jl /farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm/")
