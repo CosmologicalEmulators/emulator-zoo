@@ -182,3 +182,10 @@ for lr in lr_list
         end
     end
 end
+
+dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
+run(`cp k.npy $dest`)
+dest = joinpath(folder_output, "postprocessing.py")
+run(`cp postprocessing.py $dest`)
+dest = joinpath(folder_output, "postprocessing.jl")
+run(`cp postprocessing.jl $dest`)
