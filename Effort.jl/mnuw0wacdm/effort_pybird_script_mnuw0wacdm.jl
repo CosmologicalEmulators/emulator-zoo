@@ -6,7 +6,7 @@ using JSON3
 using Random
 using PyCall
 
-addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
 @everywhere using PyCall
 @everywhere begin
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
@@ -100,7 +100,7 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
     s = s[:, s_cond .<0.]
     @info size(s)
 
-    root_dir = "/farmdisk1/mbonici/effort_pybird_500_mnuw0wacdm"#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/effort_pybird_"string(n)*"_mnuw0wacdm"#this is tuned to my dir, use the right one for you!
 
     function pybird_script(CosmoDict, root_path)
         try
