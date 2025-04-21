@@ -185,10 +185,17 @@ end
 
 dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
 run(`cp k.npy $dest`)
-dest = joinpath(folder_output, "postprocessing.py")
-run(`cp postprocessing.py $dest`)
-dest = joinpath(folder_output, "postprocessing.jl")
-run(`cp postprocessing.jl $dest`)
+if component == "loop"
+    dest = joinpath(folder_output, "postprocessing.py")
+    run(`cp postprocessing_loop.py $dest`)
+    dest = joinpath(folder_output, "postprocessing.jl")
+    run(`cp postprocessing_loop.jl $dest`)
+else
+    dest = joinpath(folder_output, "postprocessing.py")
+    run(`cp postprocessing.py $dest`)
+    dest = joinpath(folder_output, "postprocessing.jl")
+    run(`cp postprocessing.jl $dest`)
+end
 dest = joinpath(folder_output, "nn_setup.json")
 json_str = JSON.json(NN_dict)
 open(dest, "w") do file
