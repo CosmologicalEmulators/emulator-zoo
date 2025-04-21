@@ -27,3 +27,4 @@ biascontraction.py
 biascontraction.jl
 postprocessing.py
 postprocessing.jl
+*/*/*trained*/*/*/*.json
