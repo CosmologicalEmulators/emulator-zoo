@@ -63,8 +63,8 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
 
         # Initialize Correlator
         N = Correlator()
-        dk = 0.004
-        kd = np.arange(0.003, 0.4, dk)
+        dk = 0.003
+        kd = np.arange(0.003, 0.3, dk)
 
         # Set parameters for the correlator
         N.set({
