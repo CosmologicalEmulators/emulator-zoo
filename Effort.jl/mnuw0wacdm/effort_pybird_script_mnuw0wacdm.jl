@@ -64,7 +64,7 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         # Initialize Correlator
         N = Correlator()
         dk = 0.004
-        kd = np.arange(0.001, 0.3, dk)
+        kd = np.arange(0.003, 0.4, dk)
 
         # Set parameters for the correlator
         N.set({
@@ -94,13 +94,13 @@ addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         return kk, pk_lin, kd, P11l, Ploopl, Pctl
     """
 
-    n = 10000
+    n = 500
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     s_cond = [s[8, i]+s[9, i] for i in 1:n]
     s = s[:, s_cond .<0.]
     @info size(s)
 
-    root_dir = "/farmdisk1/mbonici/effort_pybird_10000_mnuw0wacdm"#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/effort_pybird_500_mnuw0wacdm"#this is tuned to my dir, use the right one for you!
 
     function pybird_script(CosmoDict, root_path)
         try
