@@ -9,8 +9,8 @@ for ell in ells
                             /home/mbonici/julia-1.10.7/bin/julia -t 8 \
                             /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/effort_pybird_trainer_mnuw0wacdm.jl \
                             --component $component -l $ell \
-                            -i /farmdisk1/mbonici/test_pybird_120000_mnuw0wacdm \
-                            -o /farmdisk1/mbonici/batch_trained_pybird_120000_mnuw0wacdm_small_nn_AsDzprec
+                            -i /farmdisk1/mbonici/effort_pybird_2000_mnuw0wacdm \
+                            -o /farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm
                             -p AsDzprec`
 
         # Print the command for debugging (optional)
