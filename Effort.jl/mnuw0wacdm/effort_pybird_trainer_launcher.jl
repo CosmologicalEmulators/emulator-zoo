@@ -1,5 +1,6 @@
 components = ["11", "loop", "ct"]
 ells = [0, 2, 4]
+folder_output = "/farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm"
 for ell in ells
     for component in components
         # Construct the bsub command
@@ -10,7 +11,7 @@ for ell in ells
                             /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/effort_pybird_trainer_mnuw0wacdm.jl \
                             --component $component -l $ell \
                             -i /farmdisk1/mbonici/effort_pybird_2000_mnuw0wacdm \
-                            -o /farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm
+                            -o $folder_output
                             -p AsDzprec`
 
         # Print the command for debugging (optional)
@@ -19,7 +20,8 @@ for ell in ells
         # Run the command
         run(bsub_command)
     end
+    dest = joinpath(folder_output*"/"*string(ell), "biascontraction.py")  # constructs the full destination path nicely
+    run(`cp biascontraction.py $dest`)
+    dest = joinpath(folder_output*"/"*string(ell), "biascontraction.jl")
+    run(`cp biascontraction.jl $dest`)
 end
-
-run(`cp biascontraction.py /farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm/`)
-run(`cp biascontraction.jl /farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm/`)
