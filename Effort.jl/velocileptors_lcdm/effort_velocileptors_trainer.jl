@@ -36,11 +36,6 @@ OutDirectory = parsed_args["path_output"]
 
 global nk = 50
 
-global Componentkind = "11"
-ℓ = 0
-PℓDirectory = "/farmdisk1/mbonici/effort_velocileptors_1000"
-OutDirectory = "/farmdisk1/mbonici/trained_effort_velocileptors_1000_lcdm"
-
 if Componentkind == "11"
     nk_factor = 3
 elseif Componentkind == "loop"
@@ -75,7 +70,7 @@ end
 
 n_input_features = 3
 n_output_features = nk * nk_factor
-Pkkind = "0"
+
 observable_file = "/pk_" * string(ℓ) * ".npy"
 param_file = "/effort_dict.json"
 add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
