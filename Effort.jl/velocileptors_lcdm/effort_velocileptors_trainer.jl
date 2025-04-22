@@ -92,7 +92,7 @@ in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_featu
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
 out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
 
-folder_output = OutDirectory*string(ℓ)*"/"*string(Componentkind)
+folder_output = OutDirectory*"/"string(ℓ)*"/"*string(Componentkind)
 npzwrite(folder_output*"/inminmax.npy", in_MinMax)
 npzwrite(folder_output*"/outminmax.npy", out_MinMax)
 
