@@ -1,4 +1,4 @@
-components = ["11", "loop", "ct", "st"]
+components = ["11", "loop", "ct"]
 ells = [0, 2, 4]
 folder_output = "/farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm"
 for ell in ells

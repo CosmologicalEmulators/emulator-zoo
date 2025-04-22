@@ -1,6 +1,6 @@
 # Define the arrays for components and -s values
 # Define the array to loop over
-components = ["11", "loop", "ct"]
+components = ["11", "loop", "ct", "st"]
 ells = [0, 2, 4]
 
 # Loop through each component and submit the bsub command
