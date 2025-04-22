@@ -50,7 +50,7 @@ Preprocessing = parsed_args["preprocessing"]
 
 D_ODE(z, Ωcb0, h, Mν, w0, wa) = Effort._D_z(z, Ωcb0, h; mν=Mν, w0=w0, wa=wa)
 
-global nk = 82
+global nk = 74
 
 if Componentkind == "11"
     nk_factor = 3
