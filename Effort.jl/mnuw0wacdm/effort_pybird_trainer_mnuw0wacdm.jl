@@ -186,6 +186,13 @@ end
 k = readdlm("k.txt", ' ')
 dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
 npzwrite(dest, k)
+
+dest = joinpath(folder_output, "nn_setup.json")
+json_str = JSON.json(NN_dict)
+open(dest, "w") do file
+    write(file, json_str)
+end
+
 if Componentkind == "loop"
     dest = joinpath(folder_output, "postprocessing.py")
     run(`cp postprocessing_loop.py $dest`)
@@ -196,9 +203,4 @@ else
     run(`cp postprocessing.py $dest`)
     dest = joinpath(folder_output, "postprocessing.jl")
     run(`cp postprocessing.jl $dest`)
-end
-dest = joinpath(folder_output, "nn_setup.json")
-json_str = JSON.json(NN_dict)
-open(dest, "w") do file
-    write(file, json_str)
 end
