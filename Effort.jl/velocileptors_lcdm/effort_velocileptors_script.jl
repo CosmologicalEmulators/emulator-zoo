@@ -13,8 +13,8 @@ addprocs_lsf(20; bsub_flags=`-q long -n 1 -M 7094`)#this because I am using a ls
     classy = pyimport("classy")
     REPT = pyimport("velocileptors.EPT.ept_fullresum_fftw")
     pars = ["ln10As", "H0", "omch2"]
-    lb = [2.6, 60., 0.08]
-    ub = [3.4, 74., 0.16]
+    lb = [2.6, 60.0, 0.08]
+    ub = [3.4, 74.0, 0.16]
 
     #import numpy as np
     #from velocileptors.EPT.ept_fullresum_fftw import REPT
@@ -137,118 +137,118 @@ addprocs_lsf(20; bsub_flags=`-q long -n 1 -M 7094`)#this because I am using a ls
 
     function camb_script(CosmoDict, root_path)
         try
-        rand_str = root_path*"/"*randstring(10)
+            rand_str = root_path * "/" * randstring(10)
 
-        z = 0.5
-        cosmo_params = Dict(
-                        "output" => "mPk",                   # Request the matter power spectrum (mPk)
-                        "P_k_max_h/Mpc" => 20.0,             # Maximum k value (in units of h/Mpc)
-                        "z_pk" => "0.0,10",                         # Redshift at which to evaluate the power spectrum
-                        "h" => CosmoDict["H0"]/100,                        # Hubble parameter
-                        "omega_b" => 0.02237,                  # Baryon density parameter
-                        "omega_cdm" => CosmoDict["omch2"],                 # Cold dark matter density parameter
-                        "ln10^{10}A_s" => CosmoDict["ln10As"],                     # Amplitude of the primordial power spectrum
-                        "n_s" => 0.9649,                      # Scalar spectral index
-                        "tau_reio" => 0.0568,                   # Optical depth to reionization
-                        "N_ur" => 2.033,
-                        "N_ncdm" => 1,
-                        "m_ncdm" => 0.06
-                                                                                                                                      )
-        cosmo_params_fid = Dict(
-                        "output" => "mPk",                   # Request the matter power spectrum (mPk)
-                        "P_k_max_h/Mpc" => 20.0,             # Maximum k value (in units of h/Mpc)
-                        "z_pk" => "0.0,10",                         # Redshift at which to evaluate the power spectrum
-                        "h" => 0.6736,                        # Hubble parameter
-                        "omega_b" => 0.02237,                  # Baryon density parameter
-                        "omega_cdm" => 0.120,                 # Cold dark matter density parameter
-                        "ln10^{10}A_s" => 3.0363942552728806,                     # Amplitude of the primordial power spectrum
-                        "n_s" => 0.9649,                      # Scalar spectral index
-                        "tau_reio" => 0.0568,                   # Optical depth to reionization
-                        "N_ur" => 2.033,
-                        "N_ncdm" => 1,
-                        "m_ncdm" => 0.06
-                                                                                                                                      )
-
-
-        @info "Created Dict"
-        cosmo = classy.Class()
-        cosmo.set(cosmo_params)
-        cosmo.compute()
-
-        cosmo_fid = classy.Class()
-        cosmo_fid.set(cosmo_params_fid)
-        cosmo_fid.compute()
-
-        @info "Class compute"
-        mnu = 0.06
-        omega_nu = 0.0106 * mnu
-        OmegaM = (CosmoDict["omch2"] + 0.02237 + omega_nu) / (CosmoDict["H0"]/100) ^ 2
-        sig8 = cosmo.sigma8()
-        @info "sig8 computed"
-        fnu = cosmo.Omega_nu / cosmo.Omega_m()
-        f = py"f_of_a"(1 / (1+0.5); OmegaM = OmegaM)  * (1 - 0.6 * fnu)
-        @info "computed f"
+            z = 0.5
+            cosmo_params = Dict(
+                "output" => "mPk",                   # Request the matter power spectrum (mPk)
+                "P_k_max_h/Mpc" => 20.0,             # Maximum k value (in units of h/Mpc)
+                "z_pk" => "0.0,10",                         # Redshift at which to evaluate the power spectrum
+                "h" => CosmoDict["H0"] / 100,                        # Hubble parameter
+                "omega_b" => 0.02237,                  # Baryon density parameter
+                "omega_cdm" => CosmoDict["omch2"],                 # Cold dark matter density parameter
+                "ln10^{10}A_s" => CosmoDict["ln10As"],                     # Amplitude of the primordial power spectrum
+                "n_s" => 0.9649,                      # Scalar spectral index
+                "tau_reio" => 0.0568,                   # Optical depth to reionization
+                "N_ur" => 2.033,
+                "N_ncdm" => 1,
+                "m_ncdm" => 0.06
+            )
+            cosmo_params_fid = Dict(
+                "output" => "mPk",                   # Request the matter power spectrum (mPk)
+                "P_k_max_h/Mpc" => 20.0,             # Maximum k value (in units of h/Mpc)
+                "z_pk" => "0.0,10",                         # Redshift at which to evaluate the power spectrum
+                "h" => 0.6736,                        # Hubble parameter
+                "omega_b" => 0.02237,                  # Baryon density parameter
+                "omega_cdm" => 0.120,                 # Cold dark matter density parameter
+                "ln10^{10}A_s" => 3.0363942552728806,                     # Amplitude of the primordial power spectrum
+                "n_s" => 0.9649,                      # Scalar spectral index
+                "tau_reio" => 0.0568,                   # Optical depth to reionization
+                "N_ur" => 2.033,
+                "N_ncdm" => 1,
+                "m_ncdm" => 0.06
+            )
 
 
+            @info "Created Dict"
+            cosmo = classy.Class()
+            cosmo.set(cosmo_params)
+            cosmo.compute()
 
-        plin = [cosmo.pk_cb(k * CosmoDict["H0"]/100, z) * (CosmoDict["H0"]/100) ^ 3 for k in py"konh"]
-        @info "Plin computed"
-        H_fid = cosmo_fid.Hubble(z) * 299792.458 / (cosmo_fid.Hubble(0.)/100)  # H(z) in km/s/Mpc
-        H_model = cosmo.Hubble(z) * 299792.458/ (cosmo.Hubble(0.)/100)
+            cosmo_fid = classy.Class()
+            cosmo_fid.set(cosmo_params_fid)
+            cosmo_fid.compute()
 
-        D_M_fid = cosmo_fid.angular_distance(z) * (1 + z) * (cosmo_fid.Hubble(0.)/100)
-        D_M_model = cosmo.angular_distance(z) * (1 + z) * (cosmo.Hubble(0.)/100)#(1+z) is useless but I am stylish
+            @info "Class compute"
+            mnu = 0.06
+            omega_nu = 0.0106 * mnu
+            OmegaM = (CosmoDict["omch2"] + 0.02237 + omega_nu) / (CosmoDict["H0"] / 100)^2
+            sig8 = cosmo.sigma8()
+            @info "sig8 computed"
+            fnu = cosmo.Omega_nu / cosmo.Omega_m()
+            f = py"f_of_a"(1 / (1 + 0.5); OmegaM=OmegaM) * (1 - 0.6 * fnu)
+            @info "computed f"
 
-        apar = H_fid / H_model
-        aperp = D_M_model / D_M_fid
-        check_AP = Dict(
-        :H_fid => H_fid,
-        :H_model => H_model,
-        :D_M_fid => D_M_fid,
-        :D_M_model => D_M_model,
-        :apar => apar,
-        :aperp => aperp,
-        :f=> f)
-        @info "Bkg computed!"
-        knw, Pnw = py"""pnw_dst"""(py"konh", plin)
-        @info "No wiggle computed"
-        PT = REPT.REPT(knw, plin, pnw=Pnw, rbao = 110, kv=py"kv", beyond_gauss=true,
-        one_loop= true, N = 2000, extrap_min=-6, extrap_max=2, cutoff = 100, threads=1)
 
-        @info "REPT created"
 
-        # Get the tables
-        PT.compute_redshift_space_power_multipoles_tables(f, apar=1., aperp=1., ngauss = 4)
-        @info "REPT computed"
-        #print(PT.kv, PT.p0ktable, PT.p2ktable, PT.p4ktable)
-        # Sample array
-        if any(isnan, PT.p0ktable)
-            @error "There are nan values!"
-        elseif any(isnan, PT.p2ktable)
-            @error "There are nan values!"
-        elseif any(isnan, PT.p4ktable)
-            @error "There are nan values!"
-        else
-            mkdir(rand_str)
-            npzwrite(rand_str*"/kv.npy", vec(PT.kv))
-            npzwrite(rand_str*"/pk_lin.npy", plin)
-            npzwrite(rand_str*"/pk_0.npy", PT.p0ktable)
-            npzwrite(rand_str*"/pk_2.npy", PT.p2ktable)
-            npzwrite(rand_str*"/pk_4.npy", PT.p4ktable)
-            npzwrite(rand_str*"/knw.npy", knw)
-            npzwrite(rand_str*"/Pnw.npy", Pnw)
+            plin = [cosmo.pk_cb(k * CosmoDict["H0"] / 100, z) * (CosmoDict["H0"] / 100)^3 for k in py"konh"]
+            @info "Plin computed"
+            H_fid = cosmo_fid.Hubble(z) * 299792.458 / (cosmo_fid.Hubble(0.0) / 100)  # H(z) in km/s/Mpc
+            H_model = cosmo.Hubble(z) * 299792.458 / (cosmo.Hubble(0.0) / 100)
 
-            open(rand_str*"/effort_dict.json", "w") do io
-                JSON3.write(io, CosmoDict)
+            D_M_fid = cosmo_fid.angular_distance(z) * (1 + z) * (cosmo_fid.Hubble(0.0) / 100)
+            D_M_model = cosmo.angular_distance(z) * (1 + z) * (cosmo.Hubble(0.0) / 100)#(1+z) is useless but I am stylish
+
+            apar = H_fid / H_model
+            aperp = D_M_model / D_M_fid
+            check_AP = Dict(
+                :H_fid => H_fid,
+                :H_model => H_model,
+                :D_M_fid => D_M_fid,
+                :D_M_model => D_M_model,
+                :apar => apar,
+                :aperp => aperp,
+                :f => f)
+            @info "Bkg computed!"
+            knw, Pnw = py"""pnw_dst"""(py"konh", plin)
+            @info "No wiggle computed"
+            PT = REPT.REPT(knw, plin, pnw=Pnw, rbao=110, kv=py"kv", beyond_gauss=true,
+                one_loop=true, N=2000, extrap_min=-6, extrap_max=2, cutoff=100, threads=1)
+
+            @info "REPT created"
+
+            # Get the tables
+            PT.compute_redshift_space_power_multipoles_tables(f, apar=apar, aperp=aperp, ngauss=4)
+            @info "REPT computed"
+            #print(PT.kv, PT.p0ktable, PT.p2ktable, PT.p4ktable)
+            # Sample array
+            if any(isnan, PT.p0ktable)
+                @error "There are nan values!"
+            elseif any(isnan, PT.p2ktable)
+                @error "There are nan values!"
+            elseif any(isnan, PT.p4ktable)
+                @error "There are nan values!"
+            else
+                mkdir(rand_str)
+                npzwrite(rand_str * "/kv.npy", vec(PT.kv))
+                npzwrite(rand_str * "/pk_lin.npy", plin)
+                npzwrite(rand_str * "/pk_0.npy", PT.p0ktable)
+                npzwrite(rand_str * "/pk_2.npy", PT.p2ktable)
+                npzwrite(rand_str * "/pk_4.npy", PT.p4ktable)
+                npzwrite(rand_str * "/knw.npy", knw)
+                npzwrite(rand_str * "/Pnw.npy", Pnw)
+
+                open(rand_str * "/effort_dict.json", "w") do io
+                    JSON3.write(io, CosmoDict)
+                end
+                #open(rand_str*"/check_AP_dict.json", "w") do io
+                #    JSON3.write(io, check_AP)
+                #end
+                @info "File saved!"
             end
-            #open(rand_str*"/check_AP_dict.json", "w") do io
-            #    JSON3.write(io, check_AP)
-            #end
-            @info "File saved!"
-        end
         catch e
-        println("Something went wrong!")
-        println(CosmoDict)
+            println("Something went wrong!")
+            println(CosmoDict)
         end
     end
 
@@ -257,5 +257,5 @@ end
 EmulatorsTrainer.compute_dataset(s, pars, root_dir, camb_script)
 
 for i in workers()
-	rmprocs(i)
+    rmprocs(i)
 end
