@@ -15,7 +15,7 @@ for ell in ells
                             /home/mbonici/emulator-zoo/Effort.jl/velocileptors_lcdm/effort_velocileptors_trainer.jl \
                             --component $component -l $ell \
                             -i /farmdisk1/mbonici/effort_velocileptors_1000 \
-                            -o /farmdisk1/mbonici/trained_effort_velocileptors_1000/`
+                            -o /farmdisk1/mbonici/trained_effort_velocileptors_1000`
 
         # Print the command for debugging (optional)
         println("Submitting job with --component=$component --ell=$ell")
