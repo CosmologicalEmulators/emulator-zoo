@@ -7,6 +7,7 @@ using SimpleChains
 using ArgParse
 using EmulatorsTrainer
 using Effort
+using DelimitedFiles
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -49,7 +50,7 @@ Preprocessing = parsed_args["preprocessing"]
 
 D_ODE(z, Ωcb0, h, Mν, w0, wa) = Effort._D_z(z, Ωcb0, h; mν=Mν, w0=w0, wa=wa)
 
-global nk = 99
+global nk = 82
 
 if Componentkind == "11"
     nk_factor = 3
@@ -182,9 +183,9 @@ for lr in lr_list
         end
     end
 end
-
+k = readdlm("k.txt", ' ')
 dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
-run(`cp k.npy $dest`)
+npzwrite(dest, k)
 if component == "loop"
     dest = joinpath(folder_output, "postprocessing.py")
     run(`cp postprocessing_loop.py $dest`)
