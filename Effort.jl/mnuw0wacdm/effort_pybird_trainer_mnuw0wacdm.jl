@@ -186,7 +186,7 @@ end
 k = readdlm("k.txt", ' ')
 dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
 npzwrite(dest, k)
-if component == "loop"
+if Componentkind == "loop"
     dest = joinpath(folder_output, "postprocessing.py")
     run(`cp postprocessing_loop.py $dest`)
     dest = joinpath(folder_output, "postprocessing.jl")
