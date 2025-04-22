@@ -133,7 +133,7 @@ addprocs_lsf(20; bsub_flags=`-q long -n 1 -M 7094`)#this because I am using a ls
     #s = s[:, s_cond .<-1/3]
     #@info size(s)
 
-    root_dir = "/farmdisk1/mbonici/effort_velocileptors_desi_1000"#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/effort_velocileptors_1000"#this is tuned to my dir, use the right one for you!
 
     function camb_script(CosmoDict, root_path)
         try
@@ -236,7 +236,7 @@ addprocs_lsf(20; bsub_flags=`-q long -n 1 -M 7094`)#this because I am using a ls
             npzwrite(rand_str*"/pk_2.npy", PT.p2ktable)
             npzwrite(rand_str*"/pk_4.npy", PT.p4ktable)
             npzwrite(rand_str*"/knw.npy", knw)
-            npzwrite(rand_str*"/Pnw", Pnw)
+            npzwrite(rand_str*"/Pnw.npy", Pnw)
 
             open(rand_str*"/effort_dict.json", "w") do io
                 JSON3.write(io, CosmoDict)

@@ -5,7 +5,6 @@ using JSON
 using AbstractCosmologicalEmulators
 using SimpleChains
 using ArgParse
-using EmulatorsTrainer
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -29,13 +28,18 @@ function parse_commandline()
     return parse_args(s)
 end
 
-global nk = 50
-
 parsed_args = parse_commandline()
 global Componentkind = parsed_args["component"]
 ℓ = parsed_args["multipole"]
 PℓDirectory = parsed_args["path_input"]
 OutDirectory = parsed_args["path_output"]
+
+global nk = 50
+
+global Componentkind = "11"
+ℓ = 0
+PℓDirectory = "/farmdisk1/mbonici/effort_velocileptors_1000"
+OutDirectory = "/farmdisk1/mbonici/trained_effort_velocileptors_1000_lcdm"
 
 if Componentkind == "11"
     nk_factor = 3
@@ -50,6 +54,7 @@ else
 end
 
 function reshape_Pk(Pk, As)
+    @info "Pippo1"
     if Componentkind == "11"
         result = vec(Array(Pk)[:,1:3])./As
     elseif Componentkind == "loop"
@@ -65,6 +70,7 @@ function reshape_Pk(Pk, As)
 end
 
 function get_observable_tuple(cosmo_pars, Pk)
+    @info "Pippo2!"
     As = exp(cosmo_pars["ln10As"])*1e-10
     return (cosmo_pars["ln10As"], cosmo_pars["H0"], cosmo_pars["omch2"], reshape_Pk(Pk, As))
 end
@@ -76,12 +82,12 @@ observable_file = "/pk_"*string(ℓ)*".npy"
 param_file = "/effort_dict.json"
 add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
 
-df = DataFrame(ln10A_s = Float64[], H0 = Float64[], omega_cdm = Float64[], observable = Array[])
+df = DataFrame(ln10As = Float64[], H0 = Float64[], omch2 = Float64[], observable = Array[])
 @info PℓDirectory
 @time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
 
 
-array_pars_in = ["ln10A_s", "H0", "omega_cdm"]
+array_pars_in = ["ln10As", "H0", "omch2"]
 in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_features, n_output_features)
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
 out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
@@ -92,9 +98,9 @@ npzwrite(folder_output*"/outminmax.npy", out_MinMax)
 
 EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax)
 
-println(minimum(df[!,"ln10A_s"]), " , ", maximum(df[!,"ln10A_s"]))
+println(minimum(df[!,"ln10As"]), " , ", maximum(df[!,"ln10As"]))
 println(minimum(df[!,"H0"]), " , ", maximum(df[!,"H0"]))
-println(minimum(df[!,"omega_cdm"]), " , ", maximum(df[!,"omega_cdm"]))
+println(minimum(df[!,"omch2"]), " , ", maximum(df[!,"omch2"]))
 println(minimum(minimum(df[!,"observable"])), " , ", maximum(maximum(df[!,"observable"])))
 
 NN_dict = JSON.parsefile("nn_setup.json")
