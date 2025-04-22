@@ -54,7 +54,6 @@ else
 end
 
 function reshape_Pk(Pk, As)
-    @info "Pippo1"
     if Componentkind == "11"
         result = vec(Array(Pk)[:,1:3])./As
     elseif Componentkind == "loop"
@@ -70,7 +69,6 @@ function reshape_Pk(Pk, As)
 end
 
 function get_observable_tuple(cosmo_pars, Pk)
-    @info "Pippo2!"
     As = exp(cosmo_pars["ln10As"])*1e-10
     return (cosmo_pars["ln10As"], cosmo_pars["H0"], cosmo_pars["omch2"], reshape_Pk(Pk, As))
 end
