@@ -64,13 +64,13 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         # Initialize Correlator
         N = Correlator()
         dk = 0.004
-        kd = np.arange(0.005, 0.33, dk)
+        kd = np.arange(0.005, 0.3, dk)
 
         # Set parameters for the correlator
         N.set({
             "output": "bPk",
             "multipole": 3,
-            "kmax": 0.35,
+            "kmax": 0.3,
             "xdata": kd,
             "km": 0.7,
             "kr": 0.35,
