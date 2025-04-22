@@ -1,4 +1,4 @@
-components = ["11", "loop", "ct"]
+components = ["11", "loop", "ct", "st"]
 ells = [0, 2, 4]
 folder_output = "/farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm"
 for ell in ells
@@ -20,8 +20,8 @@ for ell in ells
         # Run the command
         run(bsub_command)
     end
-    dest = joinpath(folder_output*"/"*string(ell), "biascontraction.py")  # constructs the full destination path nicely
+    dest = joinpath(folder_output * "/" * string(ell), "biascontraction.py")  # constructs the full destination path nicely
     run(`cp biascontraction.py $dest`)
-    dest = joinpath(folder_output*"/"*string(ell), "biascontraction.jl")
+    dest = joinpath(folder_output * "/" * string(ell), "biascontraction.jl")
     run(`cp biascontraction.jl $dest`)
 end
