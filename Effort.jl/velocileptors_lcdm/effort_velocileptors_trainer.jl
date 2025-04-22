@@ -33,7 +33,10 @@ global Componentkind = parsed_args["component"]
 ℓ = parsed_args["multipole"]
 PℓDirectory = parsed_args["path_input"]
 OutDirectory = parsed_args["path_output"]
-
+@info ℓ
+@info PℓDirectory
+@info OutDirectory
+@info Componentkind
 global nk = 50
 
 if Componentkind == "11"
