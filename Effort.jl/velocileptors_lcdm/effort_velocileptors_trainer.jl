@@ -5,6 +5,7 @@ using JSON
 using AbstractCosmologicalEmulators
 using SimpleChains
 using ArgParse
+using DelimitedFiles
 
 function parse_commandline()
     s = ArgParseSettings()
