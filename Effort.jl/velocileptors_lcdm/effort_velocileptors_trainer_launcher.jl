@@ -4,7 +4,7 @@ components = ["11", "loop", "ct", "st"]
 ells = [0, 2, 4]
 
 # Loop through each component and submit the bsub command
-folder_output = "/farmdisk1/mbonici/trained_effort_velocileptors_1000"
+folder_output = "/farmdisk1/mbonici/trained_effort_velocileptors_lcdm_1000"
 for ell in ells
     for component in components
         # Construct the bsub command
@@ -14,7 +14,7 @@ for ell in ells
                             /home/mbonici/julia-1.9.1/bin/julia -t 8 \
                             /home/mbonici/emulator-zoo/Effort.jl/velocileptors_lcdm/effort_velocileptors_trainer.jl \
                             --component $component -l $ell \
-                            -i /farmdisk1/mbonici/effort_velocileptors_1000 \
+                            -i /farmdisk1/mbonici/effort_velocileptors_lcdm_1000 \
                             -o $folder_output`
 
         # Print the command for debugging (optional)

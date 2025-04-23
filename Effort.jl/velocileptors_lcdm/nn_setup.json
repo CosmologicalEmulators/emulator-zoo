@@ -1,5 +1,5 @@
 {
-  "n_input_features": 9,
+  "n_input_features": 3,
   "layers": {
     "layer_4": {
       "n_neurons": 64,
@@ -27,7 +27,7 @@
   "emulator_description": {
     "author": "Marco Bonici",
     "author_email": "bonici.marco@gmail.com",
-    "miscellanea": "The emulator has been trained using CLASS and pybird. The training dataset has been created by passing P_cb to PyBird, assuming there is only one massive neutrino.",
-    "parameters": "z, ln10^10 As, ns, H0, omega_b, omega_c, Mnu, w0, wa."
+    "miscellanea": "The emulator has been trained using CLASS and velocileptors. The training dataset has been created by passing P_cb to velocileptors, assuming there is only one massive neutrino and a fixed redshift of 0.5. The AP effect is encoded in this emulator, with a fiducial cosmology with a single massive neutrino with a mass of 0.06 eV, a reduced hublle parameter of 0.6736, the baryon and cold dark matter energy density are, respectively, 0.02237 and 0.12.",
+    "parameters": "ln10^10 As, H0, omega_c."
   }
 }

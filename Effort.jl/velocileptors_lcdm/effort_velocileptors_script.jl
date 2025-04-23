@@ -110,27 +110,27 @@ addprocs_lsf(20; bsub_flags=`-q long -n 1 -M 7094`)#this because I am using a ls
 
     PyCall.py"""
     import numpy as np
-konhmin=1e-3; konhmax=10; nk=20000
-konh = np.logspace(np.log10(konhmin), np.log10(konhmax), nk)
-model_kbin_edges = np.concatenate( ([0.0005,],\
-                        np.logspace(np.log10(0.0015),np.log10(0.025),10, endpoint=True),\
-                        np.arange(0.03,0.51,0.01)) )
+    konhmin=1e-3; konhmax=10; nk=20000
+    konh = np.logspace(np.log10(konhmin), np.log10(konhmax), nk)
+    model_kbin_edges = np.concatenate( ([0.0005,],\
+                            np.logspace(np.log10(0.0015),np.log10(0.025),10, endpoint=True),\
+                            np.arange(0.03,0.51,0.01)) )
 
-kv = np.array([.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085,
-0.095, 0.105, 0.115, 0.125, 0.135, 0.145, 0.155, 0.165, 0.175,
-0.185, 0.195, 0.205, 0.215, 0.225, 0.235, 0.245, 0.255, 0.265,
-0.275, 0.285, 0.295, 0.305, 0.315, 0.325, 0.335, 0.345, 0.355,
-0.365, 0.375, 0.385, 0.395, 0.405, 0.415, 0.425, 0.435, 0.445,
-0.455, 0.465, 0.475, 0.485, 0.495])
+    kv = np.array([.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085,
+    0.095, 0.105, 0.115, 0.125, 0.135, 0.145, 0.155, 0.165, 0.175,
+    0.185, 0.195, 0.205, 0.215, 0.225, 0.235, 0.245, 0.255, 0.265,
+    0.275, 0.285, 0.295, 0.305, 0.315, 0.325, 0.335, 0.345, 0.355,
+    0.365, 0.375, 0.385, 0.395, 0.405, 0.415, 0.425, 0.435, 0.445,
+    0.455, 0.465, 0.475, 0.485, 0.495])
     """
 
-    n = 1000
+    n = 10000
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     #s_cond = [s[8, i]+s[9, i] for i in 1:n]
     #s = s[:, s_cond .<-1/3]
     #@info size(s)
 
-    root_dir = "/farmdisk1/mbonici/effort_velocileptors_1000"#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/effort_velocileptors_lcdm_"*string(n)#this is tuned to my dir, use the right one for you!
 
     function camb_script(CosmoDict, root_path)
         try
