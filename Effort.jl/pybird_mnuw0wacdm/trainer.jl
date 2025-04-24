@@ -173,7 +173,7 @@ lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7]
 for lr in lr_list
     for i in 1:10
         @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 1000
-            ; batchsize=1024)
+            ; batchsize=256)
         report(p)
         test = mlpdtest(Xtest, p)
         if pippo_loss > test
