@@ -1,2 +1,2 @@
 #!/bin/bash
-/home/mbonici/julia-1.9.1/bin/julia /home/mbonici/emulator-zoo/Effort.jl/pybird_w0wacdm/effort_pybird_script.jl
+/home/mbonici/julia-1.9.1/bin/julia /home/mbonici/emulator-zoo/Effort.jl/pybird_w0wacdm/data_generation.jl
