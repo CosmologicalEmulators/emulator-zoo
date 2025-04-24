@@ -8,7 +8,7 @@ for ell in ells
                             -e /home/mbonici/EmulatorsTrainer.jl/scripts/job.err -n 8 -M 12000 \
                             -R'span[hosts=1] select[hname!=teo22 && hname!=infne01 && hname!=totem04 && hname!=totem07 && hname!=totem08 && hname!=geant15 && hname!=geant16 && hname!=aiace12 && hname!=aiace13 && hname!=aiace14 && hname!=aiace15 && hname!=aiace16 && hname!=aiace17]' \
                             /home/mbonici/julia-1.10.7/bin/julia -t 8 \
-                            /home/mbonici/emulator-zoo/Effort.jl/pybird_mnuw0wacdm/effort_pybird_trainer.jl \
+                            /home/mbonici/emulator-zoo/Effort.jl/pybird_mnuw0wacdm/trainer.jl \
                             --component $component -l $ell \
                             -i /farmdisk1/mbonici/effort_pybird_2000_mnuw0wacdm \
                             -o $folder_output
