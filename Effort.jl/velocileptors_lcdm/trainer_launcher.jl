@@ -12,7 +12,7 @@ for ell in ells
                             -e /home/mbonici/emulator-zoo/Effort.jl/velocileptors_lcdm/job.err -n 8 -M 6100 \
                             -R'span[hosts=1] select[hname!=teo22 && hname!=infne01 && hname!=totem04 && hname!=totem07 && hname!=totem08 && hname!=geant15 && hname!=geant16 && hname!=aiace12 && hname!=aiace13 && hname!=aiace14 && hname!=aiace15 && hname!=aiace16 && hname!=aiace17]' \
                             /home/mbonici/julia-1.9.1/bin/julia -t 8 \
-                            /home/mbonici/emulator-zoo/Effort.jl/velocileptors_lcdm/effort_velocileptors_trainer.jl \
+                            /home/mbonici/emulator-zoo/Effort.jl/velocileptors_lcdm/trainer.jl \
                             --component $component -l $ell \
                             -i /farmdisk1/mbonici/effort_velocileptors_lcdm_1000 \
                             -o $folder_output`
