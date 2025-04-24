@@ -183,7 +183,7 @@ for lr in lr_list
         end
     end
 end
-k = readdlm("k.txt", ' ')
+k = readdlm("k.txt", ' ')[:,1]
 dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
 npzwrite(dest, k)
 

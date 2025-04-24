@@ -164,3 +164,5 @@ else
     dest = joinpath(folder_output, "postprocessing.jl")
     run(`cp postprocessing.jl $dest`)
 end
+
+exit()
