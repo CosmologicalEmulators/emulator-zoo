@@ -20,7 +20,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo
 
     # Set parameters
     def classy_function(CosmoDict):
-            cosmo_params = {
+        cosmo_params = {
             "output": "tCl pCl lCl",
             # Increase l_max for scalar modes up to 10000:
             "l_max_scalars": 10000,
