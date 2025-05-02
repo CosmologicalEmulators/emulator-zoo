@@ -101,7 +101,7 @@ function get_observable_tuple(cosmo_pars, Pk)
     z = cosmo_pars["z"]
     ombh2 = cosmo_pars["ombh2"]
     omch2 = cosmo_pars["omch2"]
-    Mν = cosmo_pars["Mν"]
+    Mν = 0.06
     h = cosmo_pars["H0"] / 100
     Ωcb0 = (ombh2 + omch2) / h^2
     As = exp(cosmo_pars["ln10As"]) * 1e-10
@@ -114,16 +114,16 @@ function get_observable_tuple(cosmo_pars, Pk)
         cosmo_pars["ombh2"], cosmo_pars["omch2"], cosmo_pars["Mν"], cosmo_pars["w0"], cosmo_pars["wa"], reshape_Pk(Pk, factor))
 end
 
-n_input_features = 9
+n_input_features = 8
 n_output_features = nk * nk_factor
 observable_file = "/P" * Componentkind * "l.npy"
 param_file = "/effort_dict.json"
 add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
 
-df = DataFrame(z=Float64[], ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], Mν=Float64[], w0=Float64[], wa=Float64[], observable=Array[])
+df = DataFrame(z=Float64[], ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], w0=Float64[], wa=Float64[], observable=Array[])
 @time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
 
-array_pars_in = ["z", "ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "Mν", "w0", "wa"]
+array_pars_in = ["z", "ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "w0", "wa"]
 in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_features, n_output_features)
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
 out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
@@ -140,7 +140,6 @@ println(minimum(df[!, "ns"]), " , ", maximum(df[!, "ns"]))
 println(minimum(df[!, "H0"]), " , ", maximum(df[!, "H0"]))
 println(minimum(df[!, "omega_b"]), " , ", maximum(df[!, "omega_b"]))
 println(minimum(df[!, "omega_cdm"]), " , ", maximum(df[!, "omega_cdm"]))
-println(minimum(df[!, "Mν"]), " , ", maximum(df[!, "Mν"]))
 println(minimum(df[!, "w0"]), " , ", maximum(df[!, "w0"]))
 println(minimum(df[!, "wa"]), " , ", maximum(df[!, "wa"]))
 println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
@@ -170,20 +169,7 @@ pippo_loss = mlpdtest(Xtest, p)
 println("Initial Loss: ", pippo_loss)
 lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7]
 
-for lr in lr_list
-    for i in 1:10
-        @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 1000
-            ; batchsize=256)
-        report(p)
-        test = mlpdtest(Xtest, p)
-        if pippo_loss > test
-            npzwrite(folder_output * "/weights.npy", p)
-            global pippo_loss = test
-            @info "Saving coefficients! Test loss is equal to :" test
-        end
-    end
-end
-k = readdlm("k.txt", ' ')[:,1]
+k = readdlm("k.txt", ' ')[:, 1]
 dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
 npzwrite(dest, k)
 
@@ -203,4 +189,18 @@ else
     run(`cp postprocessing.py $dest`)
     dest = joinpath(folder_output, "postprocessing.jl")
     run(`cp postprocessing.jl $dest`)
+end
+
+for lr in lr_list
+    for i in 1:10
+        @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 1000
+            ; batchsize=256)
+        report(p)
+        test = mlpdtest(Xtest, p)
+        if pippo_loss > test
+            npzwrite(folder_output * "/weights.npy", p)
+            global pippo_loss = test
+            @info "Saving coefficients! Test loss is equal to :" test
+        end
+    end
 end

@@ -1,6 +1,6 @@
 components = ["11", "loop", "ct"]
 ells = [0, 2, 4]
-folder_output = "/farmdisk1/mbonici/trained_effort_pybird_2000_mnuw0wacdm"
+folder_output = "/farmdisk1/mbonici/trained_effort_pybird_w0wacdm_20000"
 for ell in ells
     for component in components
         # Construct the bsub command
@@ -10,7 +10,7 @@ for ell in ells
                             /home/mbonici/julia-1.10.7/bin/julia -t 8 \
                             /home/mbonici/emulator-zoo/Effort.jl/pybird_mnuw0wacdm/trainer.jl \
                             --component $component -l $ell \
-                            -i /farmdisk1/mbonici/effort_pybird_2000_mnuw0wacdm \
+                            -i /farmdisk1/mbonici/effort_pybird_w0wacdm_20000 \
                             -o $folder_output
                             -p AsDzprec`
 
