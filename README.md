@@ -1,4 +1,5 @@
 # emulator-zoo
+![Image](https://github.com/user-attachments/assets/60c59b07-e758-44f9-b03a-925b6b70c155)
 Please do not feed the models
 
 ## Emulators for Cosmological Observables
