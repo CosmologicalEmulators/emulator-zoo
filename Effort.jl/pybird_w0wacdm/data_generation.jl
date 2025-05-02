@@ -141,3 +141,5 @@ EmulatorsTrainer.compute_dataset(s, pars, root_dir, pybird_script)
 for i in workers()
     rmprocs(i)
 end
+
+exit()

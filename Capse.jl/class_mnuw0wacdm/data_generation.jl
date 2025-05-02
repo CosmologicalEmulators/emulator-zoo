@@ -6,7 +6,7 @@ using JSON3
 using Random
 using PyCall
 
-addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
 @everywhere using PyCall
 @everywhere begin
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
@@ -20,7 +20,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
 
     # Set parameters
     def classy_function(CosmoDict):
-        cosmo_params = {
+            cosmo_params = {
             "output": "tCl pCl lCl",
             # Increase l_max for scalar modes up to 10000:
             "l_max_scalars": 10000,
@@ -42,56 +42,8 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
             "cs2_fld" : 1.,
             "Omega_Lambda" : 0.,
             "Omega_scf" : 0.,
-            "neglect_CMB_sources_below_visibility" : 1.e-30,
-            #"transfer_neglect_late_source" : 3000.,
-            #"halofit_k_per_decade" : 3000.,
             "accurate_lensing" : 1,
-            #"num_mu_minus_lmax" : 1000.,
-            #"delta_l_max" : 1000.,
-            "k_min_tau0" : 0.002,
-            "k_max_tau0_over_l_max" : 3.,
-            #"k_step_sub" : 0.015,
-            #"k_step_super" : 0.0001,
-            #"k_step_super_reduction" : 0.1,
             "non_linear" : "hmcode",
-            #l_switch_limber" : 10,
-        }
-
-        cosmo_params = {
-            "output": "tCl pCl lCl",
-            # Increase l_max for scalar modes up to 10000:
-            "l_max_scalars": 10000,
-            # Enable lensing (if desired):
-            "lensing": "yes",                # Redshift at which to evaluate the power spectrum
-            "h": CosmoDict["H0"] / 100,        # Hubble parameter
-            "omega_b": CosmoDict["ombh2"],                # Baryon density parameter
-            "omega_cdm": CosmoDict["omch2"],   # Cold dark matter density parameter
-            "ln10^{10}A_s": CosmoDict["ln10As"], # Amplitude of the primordial power spectrum
-            "n_s": CosmoDict["ns"],                     # Scalar spectral index
-            "tau_reio": CosmoDict["τ"],                # Optical depth to reionization
-            "N_ur": 2.033,
-            "N_ncdm": 1,
-            "m_ncdm": CosmoDict["Mν"],
-            "use_ppf" : "yes",
-            "w0_fld" : CosmoDict["w0"],
-            "wa_fld" : CosmoDict["wa"],
-            "fluid_equation_of_state" : "CLP",
-            "cs2_fld" : 1.,
-            "Omega_Lambda" : 0.,
-            "Omega_scf" : 0.,
-            #"neglect_CMB_sources_below_visibility" : 1.e-30,
-            #"transfer_neglect_late_source" : 3000.,
-            #"halofit_k_per_decade" : 3000.,
-            #"accurate_lensing" : 1,
-            #"num_mu_minus_lmax" : 1000.,
-            #"delta_l_max" : 1000.,
-            #"k_min_tau0" : 0.002,
-            #"k_max_tau0_over_l_max" : 3.,
-            #"k_step_sub" : 0.015,
-            #"k_step_super" : 0.0001,
-            #"k_step_super_reduction" : 0.1,
-            "non_linear" : "hmcode",
-            #l_switch_limber" : 10,
         }
 
         print("Created cosmo_params dictionary")
@@ -163,3 +115,5 @@ EmulatorsTrainer.compute_dataset(s, pars, root_dir, classy_script)
 for i in workers()
     rmprocs(i)
 end
+
+exit()
