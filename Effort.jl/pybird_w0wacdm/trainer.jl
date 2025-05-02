@@ -111,7 +111,7 @@ function get_observable_tuple(cosmo_pars, Pk)
     factor = preprocess(z, As, Ωcb0, h, Mν, w0, wa)
 
     return (cosmo_pars["z"], cosmo_pars["ln10As"], cosmo_pars["ns"], cosmo_pars["H0"],
-        cosmo_pars["ombh2"], cosmo_pars["omch2"], cosmo_pars["Mν"], cosmo_pars["w0"], cosmo_pars["wa"], reshape_Pk(Pk, factor))
+        cosmo_pars["ombh2"], cosmo_pars["omch2"], cosmo_pars["w0"], cosmo_pars["wa"], reshape_Pk(Pk, factor))
 end
 
 n_input_features = 8
