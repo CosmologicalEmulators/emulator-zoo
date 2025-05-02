@@ -11,7 +11,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
 @everywhere begin
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
     pars = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "w0", "wa"]
-    lb = [0.29, 2.5, 0.8, 50.0, 0.02, 0.09, -3.0, -3.0,]
+    lb = [0.29, 2.0, 0.8, 50.0, 0.02, 0.09, -3.0, -3.0,]
     ub = [1.6, 3.5, 1.10, 90.0, 0.025, 0.18, +0.5, +2.0]
 
     PyCall.py"""
