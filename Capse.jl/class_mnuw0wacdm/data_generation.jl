@@ -20,7 +20,6 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
 
     # Set parameters
     def classy_function(CosmoDict):
-        z = CosmoDict["z"]
         cosmo_params = {
             "output": "tCl pCl lCl",
             # Increase l_max for scalar modes up to 10000:
@@ -64,7 +63,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         cosmo = Class()
 
         # Set the parameters
-        cosmo.set(params)
+        cosmo.set(cosmo_params)
 
         # Compute the cosmological observables
         cosmo.compute()
