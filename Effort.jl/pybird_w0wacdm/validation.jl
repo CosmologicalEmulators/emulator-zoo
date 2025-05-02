@@ -16,7 +16,7 @@ function effort_load(root)
     return P0, P2, P4
 end
 
-pars_array = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "Mν", "w0", "wa"]
+pars_array = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "w0", "wa"]
 
 function get_ground_truth(location, lidx)
     P11l = npzread(location * "/P11l.npy")[lidx, :, :]
@@ -29,17 +29,18 @@ function get_ground_truth(location, lidx)
 end
 
 function get_emu_prediction(input_test, Pℓ_emu, D::Function)
-    z, ln10As, ns, H0, ombh2, omch2, Mν, w0, wa = input_test
+    z, ln10As, ns, H0, ombh2, omch2, w0, wa = input_test
+    Mν = 0.06
     h = H0 / 100
     Ωcb0 = (ombh2 + omch2) / h^2
     myD = D(z, Ωcb0, h, Mν, w0, wa)
     Effort.get_Pℓ(input_test, myD, biases, Pℓ_emu)
 end
 
-P0, P2, P4 = effort_load("trained_effort_pybird_mnuw0wacdm_batchsize_128_60000/")
+P0, P2, P4 = effort_load("trained_effort_pybird_w0wacdm_20000/")
 k = P0.P11.kgrid
 
-Pℓ_directory = "effort_pybird_mnuw0wacdm_10000"
+Pℓ_directory = "effort_pybird_w0wacdm_10000"
 
 D = 1.0
 biases = [2, 1, -1.0, 1, -2, -1.0, 0.0, 0.86]
@@ -52,7 +53,7 @@ function validation(lidx, Pl)
     biases = [2, 1, -1.0, 1, -2, -1.0, 0.0, 0.86]
 
     validation_residuals = EmulatorsTrainer.evaluate_sorted_residuals(Pℓ_directory, "effort_dict.json", pars_array,
-        gt, get_pred, 8192, 74)
+        gt, get_pred, 8183, 74)
 end
 
 res_0 = validation(1, P0)

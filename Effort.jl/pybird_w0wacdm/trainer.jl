@@ -194,7 +194,7 @@ end
 for lr in lr_list
     for i in 1:10
         @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 1000
-            ; batchsize=256)
+            ; batchsize=128)
         report(p)
         test = mlpdtest(Xtest, p)
         if pippo_loss > test

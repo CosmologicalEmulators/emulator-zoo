@@ -28,3 +28,5 @@ biascontraction.jl
 postprocessing.py
 postprocessing.jl
 *.json
+*.png
+*.pdf
