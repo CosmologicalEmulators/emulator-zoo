@@ -1,2 +1,5 @@
 [deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Effort = "ace19e24-02c2-4bce-bc41-b57e89c0fc53"
+EmulatorsTrainer = "ef107171-9c1d-4869-9860-ac18fb1a7e36"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
