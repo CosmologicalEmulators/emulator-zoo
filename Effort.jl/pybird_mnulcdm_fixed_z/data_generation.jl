@@ -98,7 +98,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     @info size(s)
 
-    root_dir = "/farmdisk1/mbonici/effort_pybird_mnulcdm_fized_z" * string(n)#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/effort_pybird_mnulcdm_fixed_z" * string(n)#this is tuned to my dir, use the right one for you!
 
     function pybird_script(CosmoDict, root_path)
         try
