@@ -27,7 +27,7 @@ function parse_commandline()
 end
 
 parsed_args = parse_commandline()
-global SpectraKind = parsed_args["spectra"]
+global SpectraKind = parsed_args["spectrum"]
 CℓDirectory = parsed_args["path_input"]
 OutDirectory = parsed_args["path_output"]
 
