@@ -35,7 +35,7 @@ end
             "ln10^{10}A_s": CosmoDict["ln10As"], # Amplitude of the primordial power spectrum
             "n_s": CosmoDict["ns"],                     # Scalar spectral index
             "tau_reio": CosmoDict["τ"],                # Optical depth to reionization
-            "N_ur": 2.033,
+            "N_ur": 2.0308,
             "N_ncdm": 1,
             "m_ncdm": 0.06,
             "use_ppf" : "yes",

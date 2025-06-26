@@ -1,19 +1,22 @@
 using Distributed
 using NPZ
-using ClusterManagers
+using LSFClusterManager
 using EmulatorsTrainer
 using JSON3
 using Random
 using PyCall
 
-addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(50; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`, exeflags = "--project=/home/mbonici/emulator-zoo/Capse.jl/class_mnuw0wacdm")#this because I am using a lsf cluster. Use the appropriate one!
+@info "Added processes!"
 @everywhere using PyCall
 @everywhere begin
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
     pars = ["ln10As", "ns", "H0", "ombh2", "omch2", "τ", "Mν", "w0", "wa"]
-    lb = [2.5, 0.8, 50.0, 0.02, 0.09, 0.02, 0.0, -3.0, -3.0,]
-    ub = [3.5, 1.10, 90.0, 0.025, 0.18, 0.12, 0.5, +0.5, +2.0]
+    lb = [2.0, 0.8,  50.0,  0.02,  0.08, 0.01, 0.0, -3., -3.]
+    ub = [3.5, 1.10, 100.0, 0.025, 0.18, 0.20, 0.5, 1., 2.]
+end
 
+@everywhere begin
     PyCall.py"""
     import numpy as np
     from classy import Class
@@ -32,7 +35,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo
             "ln10^{10}A_s": CosmoDict["ln10As"], # Amplitude of the primordial power spectrum
             "n_s": CosmoDict["ns"],                     # Scalar spectral index
             "tau_reio": CosmoDict["τ"],                # Optical depth to reionization
-            "N_ur": 2.033,
+            "N_ur": 2.0308,
             "N_ncdm": 1,
             "m_ncdm": CosmoDict["Mν"],
             "use_ppf" : "yes",
@@ -70,7 +73,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo
         return tt, ee, te, pp
     """
 
-    n = 10000
+    n = 40000
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     s_cond = [s[8, i] + s[9, i] for i in 1:n]
     s = s[:, s_cond.<0.0]
@@ -85,7 +88,6 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo
             @info "EFT computed"
             if any(isnan, tt)
                 @info CosmoDict
-                @info P11l
                 @error "There are nan values!"
             elseif any(isnan, ee)
                 @error "There are nan values!"

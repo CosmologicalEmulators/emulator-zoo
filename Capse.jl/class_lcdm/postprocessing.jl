@@ -1,1 +1,1 @@
-(input, output) -> output .* exp(input[1]) * 1e-10
+(input, output, emu) -> output .* exp(input[1]) * 1e-10
