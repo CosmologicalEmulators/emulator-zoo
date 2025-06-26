@@ -12,8 +12,8 @@ function parse_commandline()
     s = ArgParseSettings()
 
     @add_arg_table s begin
-        "--spectra"
-        help = "the spectra we are training. Either TT, TE, EE, or PP"
+        "--spectrum"
+        help = "The Spectrum we are training. Either TT, TE, EE, or PP"
         default = "TT"
         "--path_input", "-i"
         help = "input folder"
