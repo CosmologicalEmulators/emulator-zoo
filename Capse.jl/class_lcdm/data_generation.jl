@@ -6,27 +6,27 @@ using JSON3
 using Random
 using PyCall
 
-addprocs_lsf(50; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Capse.jl/class_mnuw0wacdm")#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(50; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`, exeflags = "--project=/home/mbonici/emulator-zoo/Capse.jl/class_mnuw0wacdm")#this because I am using a lsf cluster. Use the appropriate one!
 @info "Added processes!"
 @everywhere using PyCall
 @everywhere begin
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
-    pars = ["ln10As", "ns", "H0", "ombh2", "omch2", "τ", "fede", "scf", "log10axion"]
-    lb = [2.5, 0.8, 50.0, 0.02, 0.09, 0.01, 1e-4, 0.0, -4.5]
-    ub = [3.5, 1.10, 90.0, 0.025, 0.18, 0.15, 0.5, π, -3.0]
+    pars = ["ln10As", "ns", "H0", "ombh2", "omch2", "τ"]
+    lb = [2.0, 0.8, 50.0, 0.02, 0.09, 0.01]
+    ub = [3.5, 1.10, 90.0, 0.025, 0.18, 0.20]
 end
 
 @everywhere begin
     PyCall.py"""
     import numpy as np
-    import pyclass.axiclass as pya
+    from classy import Class
 
     # Set parameters
-    def axiclassy_function(CosmoDict):
+    def classy_function(CosmoDict):
         cosmo_params = {
             "output": "tCl pCl lCl",
             # Increase l_max for scalar modes up to 10000:
-            "l_max_scalars": 3000,
+            "l_max_scalars": 10000,
             # Enable lensing (if desired):
             "lensing": "yes",                # Redshift at which to evaluate the power spectrum
             "h": CosmoDict["H0"] / 100,        # Hubble parameter
@@ -38,38 +38,38 @@ end
             "N_ur": 2.0308,
             "N_ncdm": 1,
             "m_ncdm": 0.06,
-            'fraction_axion_ac':CosmoDict["fede"],
-            'scf_parameters': [CosmoDict["scf"], 0.0],
-            'log10_axion_ac':CosmoDict["log10axion"],
-            'do_shooting':True,
-            'do_shooting_scf': True,
-            'scf_potential':'axion',
-            'n_axion':3,
-            'security_small_Omega_scf':0.001,
-            'n_axion_security': 2.09,
-            'use_big_theta_scf':True,
-            'scf_has_perturbations':True,
-            'attractor_ic_scf':False,
-            'scf_tuning_index':0
+            "use_ppf" : "yes",
+            "w0_fld" : -1.0,
+            "wa_fld" : 0.0,
+            "fluid_equation_of_state" : "CLP",
+            "cs2_fld" : 1.,
+            "Omega_Lambda" : 0.,
+            "Omega_scf" : 0.,
+            "accurate_lensing" : 1,
+            "non_linear" : "hmcode",
         }
 
         print("Created cosmo_params dictionary")
 
         # Initialize Class and compute linear power spectrum
-        cosmo = pya.ClassEngine(EDEdict)
-        hr = pya.Harmonic(cosmo)
-        cl = hr.lensed_cl(lmax=3000)
+        cosmo = Class()
 
+        # Set the parameters
+        cosmo.set(cosmo_params)
+        print("Params set")
+        # Compute the cosmological observables
+        cosmo.compute()
+        cl = cosmo.lensed_cl(lmax=10000)
         print("Cl computed")
 
         # The returned dictionary 'cl' contains keys like 'tt', 'ee', 'te', etc.
         # The multipole array (l) goes from 0 up to l_max (inclusive).
         ell = np.arange(len(cl['tt']))
         factor = ell*(ell+1.)/2./np.pi
-        tt = 7.42715e12*(factor*cl['tt'])[2:3000]
-        ee = 7.42715e12*(factor*cl['ee'])[2:3000]
-        te = 7.42715e12*(factor*cl['te'])[2:3000]
-        pp = (ell*(ell+1)*ell*(ell+1)*cl['pp']/2/np.pi)[2:3000]
+        tt = 7.42715e12*(factor*cl['tt'])[2:10000]
+        ee = 7.42715e12*(factor*cl['ee'])[2:10000]
+        te = 7.42715e12*(factor*cl['te'])[2:10000]
+        pp = (ell*(ell+1)*ell*(ell+1)*cl['pp']/2/np.pi)[2:10000]
         return tt, ee, te, pp
     """
 
@@ -79,9 +79,9 @@ end
     #s = s[:, s_cond.<0.0]
     @info size(s)
 
-    root_dir = "/farmdisk1/mbonici/capse_axiclass_" * string(n)#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/capse_class_lcdm_" * string(n)#this is tuned to my dir, use the right one for you!
 
-    function axiclassy_script(CosmoDict, root_path)
+    function classy_script(CosmoDict, root_path)
         try
             rand_str = root_path * "/" * randstring(10)
             tt, ee, te, pp = py"classy_function"(CosmoDict)
