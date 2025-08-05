@@ -75,8 +75,6 @@ end
 
     n = 10001
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
-    #s_cond = [s[8, i] + s[9, i] for i in 1:n]
-    #s = s[:, s_cond.<0.0]
     @info size(s)
 
     root_dir = "/farmdisk1/mbonici/capse_axiclass_" * string(n)#this is tuned to my dir, use the right one for you!
@@ -84,7 +82,7 @@ end
     function axiclassy_script(CosmoDict, root_path)
         try
             rand_str = root_path * "/" * randstring(10)
-            tt, ee, te, pp = py"classy_function"(CosmoDict)
+            tt, ee, te, pp = py"axiclassy_function"(CosmoDict)
             @info "EFT computed"
             if any(isnan, tt)
                 @info CosmoDict
