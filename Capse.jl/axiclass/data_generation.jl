@@ -5,11 +5,13 @@ using EmulatorsTrainer
 using JSON3
 using Random
 using PyCall
+using LinearAlgebra
 
-addprocs_lsf(50; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Capse.jl/class_mnuw0wacdm")#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Capse.jl/axiclass/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Capse.jl/axiclass")#this because I am using a lsf cluster. Use the appropriate one!
 @info "Added processes!"
-@everywhere using PyCall
+@everywhere using PyCall, LinearAlgebra
 @everywhere begin
+    BLAS.set_num_threads(1)
     using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
     pars = ["ln10As", "ns", "H0", "ombh2", "omch2", "τ", "fede", "scf", "log10axion"]
     lb = [2.5, 0.8, 50.0, 0.02, 0.09, 0.01, 1e-4, 0.0, -4.5]
@@ -56,9 +58,9 @@ end
         print("Created cosmo_params dictionary")
 
         # Initialize Class and compute linear power spectrum
-        cosmo = pya.ClassEngine(EDEdict)
+        cosmo = pya.ClassEngine(cosmo_params)
         hr = pya.Harmonic(cosmo)
-        cl = hr.lensed_cl(lmax=3000)
+        cl = hr.lensed_cl()
 
         print("Cl computed")
 
@@ -69,11 +71,10 @@ end
         tt = 7.42715e12*(factor*cl['tt'])[2:3000]
         ee = 7.42715e12*(factor*cl['ee'])[2:3000]
         te = 7.42715e12*(factor*cl['te'])[2:3000]
-        pp = (ell*(ell+1)*ell*(ell+1)*cl['pp']/2/np.pi)[2:3000]
-        return tt, ee, te, pp
+        return tt, ee, te
     """
 
-    n = 10001
+    n = 1000
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     @info size(s)
 
@@ -82,7 +83,7 @@ end
     function axiclassy_script(CosmoDict, root_path)
         try
             rand_str = root_path * "/" * randstring(10)
-            tt, ee, te, pp = py"axiclassy_function"(CosmoDict)
+            tt, ee, te = py"axiclassy_function"(CosmoDict)
             @info "EFT computed"
             if any(isnan, tt)
                 @info CosmoDict
@@ -97,7 +98,6 @@ end
                 npzwrite(rand_str * "/TT.npy", tt)
                 npzwrite(rand_str * "/EE.npy", ee)
                 npzwrite(rand_str * "/TE.npy", te)
-                npzwrite(rand_str * "/PP.npy", pp)
 
                 open(rand_str * "/capse_dict.json", "w") do io
                     JSON3.write(io, CosmoDict)
@@ -111,7 +111,7 @@ end
     end
 end
 
-EmulatorsTrainer.compute_dataset(s, pars, root_dir, classy_script)
+EmulatorsTrainer.compute_dataset(s, pars, root_dir, axiclassy_script)
 
 for i in workers()
     rmprocs(i)
