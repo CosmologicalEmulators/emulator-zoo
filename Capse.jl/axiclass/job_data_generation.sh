@@ -1,2 +1,2 @@
 #!/bin/bash
-julia --project=/home/mbonici/emulator-zoo/Capse.jl/class_mnuw0wacdm /home/mbonici/emulator-zoo/Capse.jl/class_lcdm/data_generation.jl
+julia --project=/home/mbonici/emulator-zoo/Capse.jl/axiclass /home/mbonici/emulator-zoo/Capse.jl/axiclass/data_generation.jl
