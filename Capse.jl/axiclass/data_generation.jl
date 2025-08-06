@@ -53,6 +53,10 @@ end
             'scf_has_perturbations':True,
             'attractor_ic_scf':False,
             'scf_tuning_index':0
+            'include_scf_in_delta_m':True,
+            'include_scf_in_delta_cb':True,
+            'scf_evolve_as_fluid':False,
+            'scf_evolve_like_axionCAMB':False
         }
 
         print("Created cosmo_params dictionary")
