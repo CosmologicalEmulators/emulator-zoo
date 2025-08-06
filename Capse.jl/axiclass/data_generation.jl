@@ -52,7 +52,7 @@ end
             'use_big_theta_scf':True,
             'scf_has_perturbations':True,
             'attractor_ic_scf':False,
-            'scf_tuning_index':0
+            'scf_tuning_index':0,
             'include_scf_in_delta_m':True,
             'include_scf_in_delta_cb':True,
             'scf_evolve_as_fluid':False,
