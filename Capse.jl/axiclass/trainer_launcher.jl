@@ -1,6 +1,6 @@
 spectra = ["TT", "TE", "EE"]
 input = "/farmdisk1/mbonici/capse_axiclass_1000"
-output = "/farmdisk1/mbonici/trained_axicapse_1000"
+output = "/farmdisk1/mbonici/trained_capse_axiclass_1000"
 
 for spectrum in spectra
     # Construct the bsub command
