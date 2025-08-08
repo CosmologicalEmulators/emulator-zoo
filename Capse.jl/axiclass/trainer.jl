@@ -37,7 +37,7 @@ OutDirectory = parsed_args["path_output"]
 
 global nk = 2999
 
-preprocess(ln10As, ns, H0, ombh2, omch2, τ) = exp(ln10As) * 1e-10
+preprocess(ln10As, ns, H0, ombh2, omch2, τ, fede, scf, log10axion) = exp(ln10As) * 1e-10
 
 function get_observable_tuple(cosmo_pars, Cl)
     ombh2 = cosmo_pars["ombh2"]
@@ -46,22 +46,25 @@ function get_observable_tuple(cosmo_pars, Cl)
     H0 = cosmo_pars["H0"]
     ln10As = cosmo_pars["ln10As"]
     ns = cosmo_pars["ns"]
+    fede = cosmo_pars["fede"]
+    scf = cosmo_pars["scf"]
+    log10axion = cosmo_pars["log10axion"]
 
-    factor = preprocess(ln10As, ns, H0, ombh2, omch2, τ)
+    factor = preprocess(ln10As, ns, H0, ombh2, omch2, τ, fede, scf, log10axion)
 
-    return (ln10As, ns, H0, ombh2, omch2, τ, Cl[1:2999] ./ factor)
+    return (ln10As, ns, H0, ombh2, omch2, τ, fede, scf, log10axion, Cl[1:2999] ./ factor)
 end
 
-n_input_features = 6
+n_input_features = 9
 n_output_features = 2999
 observable_file = "/" * SpectraKind * ".npy"
 param_file = "/capse_dict.json"
 add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
 
-df = DataFrame(ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], τ=Float64[], observable=Array[])
+df = DataFrame(ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], τ=Float64[], fede=Float64[], scf=Float64[], log10axion=Float64[], observable=Array[])
 @time EmulatorsTrainer.load_df_directory!(df, CℓDirectory, add_observable!)
 
-array_pars_in = ["ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "τ"]
+array_pars_in = ["ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "τ", "fede", "scf", "log10axion"]
 in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_features, n_output_features)
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
 out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
@@ -78,6 +81,9 @@ println(minimum(df[!, "H0"]), " , ", maximum(df[!, "H0"]))
 println(minimum(df[!, "omega_b"]), " , ", maximum(df[!, "omega_b"]))
 println(minimum(df[!, "omega_cdm"]), " , ", maximum(df[!, "omega_cdm"]))
 println(minimum(df[!, "τ"]), " , ", maximum(df[!, "τ"]))
+println(minimum(df[!, "fede"]), " , ", maximum(df[!, "fede"]))
+println(minimum(df[!, "scf"]), " , ", maximum(df[!, "scf"]))
+println(minimum(df[!, "log10axion"]), " , ", maximum(df[!, "log10axion"]))
 println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
 
 NN_dict = JSON.parsefile("nn_setup.json")
