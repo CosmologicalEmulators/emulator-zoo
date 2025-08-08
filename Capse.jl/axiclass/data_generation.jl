@@ -72,9 +72,9 @@ end
         # The multipole array (l) goes from 0 up to l_max (inclusive).
         ell = np.arange(len(cl['tt']))
         factor = ell*(ell+1.)/2./np.pi
-        tt = 7.42715e12*(factor*cl['tt'])[2:3000]
-        ee = 7.42715e12*(factor*cl['ee'])[2:3000]
-        te = 7.42715e12*(factor*cl['te'])[2:3000]
+        tt = 7.42715e12*(factor*cl['tt'])[2:3001]
+        ee = 7.42715e12*(factor*cl['ee'])[2:3001]
+        te = 7.42715e12*(factor*cl['te'])[2:3001]
         return tt, ee, te
     """
 
