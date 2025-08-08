@@ -5,7 +5,6 @@ using JSON
 using AbstractCosmologicalEmulators
 using SimpleChains
 using ArgParse
-using EmulatorsTrainer
 using DelimitedFiles
 
 function parse_commandline()
