@@ -7,7 +7,7 @@ using Random
 using PyCall
 using LinearAlgebra
 
-addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Capse.jl/axiclass/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Capse.jl/axiclass")#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(90; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Capse.jl/axiclass/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Capse.jl/axiclass")#this because I am using a lsf cluster. Use the appropriate one!
 @info "Added processes!"
 @everywhere using PyCall, LinearAlgebra
 @everywhere begin
@@ -78,7 +78,7 @@ end
         return tt, ee, te
     """
 
-    n = 1000
+    n = 120000
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
     @info size(s)
 
