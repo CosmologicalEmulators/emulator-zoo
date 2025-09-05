@@ -16,7 +16,7 @@ Welcome to **emulator-zoo**, the centralized repository for state-of-the-art cos
 
 - 🚀 **Production-Ready Emulators**: CMB power spectra (Cℓ) and galaxy power spectrum multipoles
 - 🔬 **Multiple Cosmologies**: ΛCDM, w₀wₐCDM, massive neutrinos, and axion models
-- 📊 **Validated Performance**: Comprehensive validation on 30,000+ cosmological parameter combinations
+- 📊 **Validated Performance**: Comprehensive validation across extensive cosmological parameter spaces
 - 🔧 **Ensemble Methods**: Support for Phalanx.jl ensemble averaging with 50-75% outlier reduction
 - 📦 **Two Backend Frameworks**: Capse.jl (CMB) and Effort.jl (LSS)
 - ♻️ **Full Reproducibility**: Complete training pipelines with data generation scripts
@@ -43,7 +43,13 @@ cd emulator-zoo
 julia --project=.
 julia> using Pkg; Pkg.instantiate()
 
+# Download validation dataset (required for testing)
+# TODO: Add download instructions once validation data is hosted
+# wget https://path-to-validation-data/class_mnuw0wacdm_validation.tar.gz
+# tar -xzf class_mnuw0wacdm_validation.tar.gz
+
 # Run a quick test (example with Capse.jl)
+# Note: Requires validation dataset to be downloaded first
 julia> include("Capse.jl/class_mnuw0wacdm/validator.jl")
 ```
 
