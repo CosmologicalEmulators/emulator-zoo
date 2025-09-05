@@ -67,31 +67,6 @@ julia> include("Capse.jl/class_mnuw0wacdm/validator.jl")
 | `pybird_w0wacdm` | PyBird | Variable | P₀, P₂, P₄ | ✅ Production |
 | `velocileptors_lcdm` | Velocileptors | Variable | P₀, P₂ | ⚙️ Development |
 
-## 💻 Installation
-
-### Prerequisites
-
-- Julia 1.9 or higher
-- Python 3.8+ (for data generation)
-- 8GB+ RAM recommended
-- CUDA-capable GPU (optional, for accelerated training)
-
-### Setup
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/CosmologicalEmulators/emulator-zoo.git
-cd emulator-zoo
-
-# 2. Install Julia dependencies
-julia --project=.
-julia> using Pkg
-julia> Pkg.instantiate()
-
-# 3. Install Python dependencies (if needed for data generation)
-pip install -r requirements.txt  # If available
-```
-
 ## 📊 Usage Examples
 
 ### Basic CMB Power Spectrum Prediction
@@ -120,9 +95,6 @@ ensemble = load_ensemble("phalanx_master_copy/TT")
 
 # Get prediction with uncertainty
 Cℓ_mean, Cℓ_std = predict_with_std(ensemble, params)
-
-# Relative uncertainty
-rel_uncertainty = Cℓ_std ./ Cℓ_mean
 ```
 
 ### Galaxy Power Spectrum Multipoles
@@ -139,23 +111,6 @@ params = [ωb, ωc, h, ns, As, Mν, b1, b2, b3, b4, b5, b6, b7]
 # Get power spectrum multipoles at specific k-values
 P0, P2, P4 = Effort.get_Pk_multipoles(params, k_array, z, emulator)
 ```
-
-## 📈 Validation & Performance
-
-### Recent Validation Results (Sept 2024)
-
-Comprehensive validation on 30,173 cosmological parameter combinations shows:
-
-#### Single vs Ensemble Performance (Phalanx)
-
-| Spectrum | 68% CL Improvement | 95% CL Improvement | 99% CL Improvement |
-|----------|-------------------|-------------------|-------------------|
-| **TT** | 21% | 46% | 76% |
-| **EE** | 2% | -4% | 30% |
-| **TE** | 12% | 22% | 63% |
-| **PP** | 2% | 11% | 55% |
-
-**Key Achievement**: 50-75% reduction in extreme outliers at 99% confidence level
 
 ### Running Validation
 
@@ -183,22 +138,6 @@ julia --project=. trainer.jl --config nn_setup.json --epochs 5000
 
 # 3. Validate performance
 julia --project=. validator.jl --test_set validation_data/
-```
-
-### Custom Ensemble Configurations
-
-Create a `config.json` for weighted ensemble averaging:
-
-```json
-{
-  "backend": "Capse",
-  "emulators": [
-    {"path": "emulator_1", "weight": 0.15},
-    {"path": "emulator_2", "weight": 0.10},
-    {"path": "emulator_3", "weight": 0.12},
-    ...
-  ]
-}
 ```
 
 ### Parallel Data Generation
@@ -243,25 +182,6 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - 📊 Additional validation metrics
 - 🔧 Performance optimizations
 - 📚 Documentation improvements
-
-## 📝 Citation
-
-If you use emulator-zoo in your research, please cite:
-
-```bibtex
-@software{emulator_zoo_2024,
-  author = {Bonici, Marco and CosmologicalEmulators Contributors},
-  title = {emulator-zoo: A Comprehensive Collection of Cosmological Emulators},
-  year = {2024},
-  url = {https://github.com/CosmologicalEmulators/emulator-zoo},
-  version = {1.0.0}
-}
-```
-
-For specific emulator frameworks:
-- **Capse.jl**: [Citation details]
-- **Effort.jl**: [Citation details]
-- **Phalanx.jl**: [Paper in preparation]
 
 ## 📬 Contact
 
