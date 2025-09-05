@@ -124,9 +124,9 @@ df = DataFrame(ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[],
 @time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
 
 array_pars_in = ["ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "Mν"]
-in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_features, n_output_features)
+in_array, out_array = EmulatorsTrainer.extract_input_output_df(df)
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
-out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
+out_MinMax = EmulatorsTrainer.get_minmax_out(out_array);
 
 folder_output = OutDirectory * "/" * string(ℓ) * "/" * string(Componentkind)
 npzwrite(folder_output * "/inminmax.npy", in_MinMax)
@@ -147,7 +147,7 @@ NN_dict["n_output_features"] = n_output_features
 NN_dict["n_input_features"] = n_input_features
 mlpd = AbstractCosmologicalEmulators._get_nn_simplechains(NN_dict);
 
-X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df, n_input_features, n_output_features);
+X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df);
 
 p = SimpleChains.init_params(mlpd)
 G = SimpleChains.alloc_threaded_grad(mlpd);

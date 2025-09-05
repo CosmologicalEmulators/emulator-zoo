@@ -30,3 +30,7 @@ postprocessing.jl
 *.json
 *.png
 *.pdf
+*.out
+*.err
+*.npy
+*.npz

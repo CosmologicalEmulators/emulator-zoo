@@ -136,7 +136,7 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
     end
 end
 
-EmulatorsTrainer.compute_dataset(s, pars, root_dir, pybird_script)
+EmulatorsTrainer.compute_dataset(s, pars, root_dir, pybird_script, :distributed)
 
 for i in workers()
     rmprocs(i)

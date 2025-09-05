@@ -113,7 +113,7 @@ end
     end
 end
 
-EmulatorsTrainer.compute_dataset(s, pars, root_dir, classy_script)
+EmulatorsTrainer.compute_dataset(s, pars, root_dir, classy_script, :distributed)
 
 for i in workers()
     rmprocs(i)

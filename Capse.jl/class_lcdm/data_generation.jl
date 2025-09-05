@@ -6,7 +6,7 @@ using JSON3
 using Random
 using PyCall
 
-addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Capse.jl/class_lcdm/job.err`, exeflags = "--project=/home/mbonici/emulator-zoo/Capse.jl/class_lcdm")#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(10; bsub_flags=`-q long -n 1 -M 14094 -e /home/mbonici/emulator-zoo/Capse.jl/class_lcdm/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Capse.jl/class_lcdm")#this because I am using a lsf cluster. Use the appropriate one!
 @info "Added processes!"
 @everywhere using PyCall
 @everywhere begin
@@ -75,8 +75,6 @@ end
 
     n = 100
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
-    #s_cond = [s[8, i] + s[9, i] for i in 1:n]
-    #s = s[:, s_cond.<0.0]
     @info size(s)
 
     root_dir = "/farmdisk1/mbonici/capse_class_lcdm_" * string(n)#this is tuned to my dir, use the right one for you!
@@ -113,7 +111,7 @@ end
     end
 end
 
-EmulatorsTrainer.compute_dataset(s, pars, root_dir, classy_script)
+EmulatorsTrainer.compute_dataset(s, pars, root_dir, classy_script, :distributed)
 
 for i in workers()
     rmprocs(i)

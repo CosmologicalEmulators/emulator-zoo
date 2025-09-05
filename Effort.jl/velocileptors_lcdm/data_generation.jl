@@ -250,7 +250,7 @@ addprocs_lsf(20; bsub_flags=`-q long -n 1 -M 7094`)#this because I am using a ls
 
 end
 
-EmulatorsTrainer.compute_dataset(s, pars, root_dir, camb_script)
+EmulatorsTrainer.compute_dataset(s, pars, root_dir, camb_script, :distributed)
 
 for i in workers()
     rmprocs(i)
