@@ -35,9 +35,9 @@ OutDirectory = parsed_args["path_output"]
 @info CℓDirectory
 @info OutDirectory
 
-global nk = 2999
+global nk = 9998
 
-preprocess(ln10As, ns, H0, ombh2, omch2, τ, Mν, w0, wa) = exp(ln10As) * 1e-10
+preprocess(ln10As, ns, H0, ombh2, omch2, τ, Mν, w0, wa) = exp(ln10As) * 1e-10 * exp(-2 * τ)
 
 function get_observable_tuple(cosmo_pars, Cl)
     ombh2 = cosmo_pars["ombh2"]
@@ -52,11 +52,11 @@ function get_observable_tuple(cosmo_pars, Cl)
 
     factor = preprocess(ln10As, ns, H0, ombh2, omch2, τ, Mν, w0, wa)
 
-    return (ln10As, ns, H0, ombh2, omch2, τ, Mν, w0, wa, Cl[1:2999] ./ factor)
+    return (ln10As, ns, H0, ombh2, omch2, τ, Mν, w0, wa, Cl[1:9998] ./ factor)
 end
 
 n_input_features = 9
-n_output_features = 2999
+n_output_features = 9998
 observable_file = "/" * SpectraKind * ".npy"
 param_file = "/capse_dict.json"
 add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
@@ -99,7 +99,7 @@ G = SimpleChains.alloc_threaded_grad(mlpd);
 mlpdloss = SimpleChains.add_loss(mlpd, SquaredLoss(Y))
 mlpdtest = SimpleChains.add_loss(mlpd, SquaredLoss(Ytest))
 
-l = Array(2:3000)
+l = Array(2:9999)
 dest = joinpath(folder_output, "l.npy")  # constructs the full destination path nicely
 npzwrite(dest, l)
 

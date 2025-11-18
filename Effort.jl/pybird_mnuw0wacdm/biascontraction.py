@@ -9,4 +9,4 @@ def BiasContraction(bs, stacked_array):
         2*b1*b5, 2*b1*b6, 2*b1*b7,
         2*f*b5, 2*f*b6, 2*f*b7
     ])
-    return stacked_array * biases
+    return np.dot(stacked_array, biases)

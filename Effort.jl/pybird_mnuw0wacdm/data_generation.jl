@@ -1,18 +1,20 @@
 using Distributed
 using NPZ
-using ClusterManagers
+using LSFClusterManager
 using EmulatorsTrainer
 using JSON3
 using Random
+using LinearAlgebra
 using PyCall
 
-addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`)#this because I am using a lsf cluster. Use the appropriate one!
+addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/Effort.jl/mnuw0wacdm/job.err`, exeflags="--project=/home/mbonici/emulator-zoo/Effort.jl/pybird_mnuw0wacdm")#this because I am using a lsf cluster. Use the appropriate one!
 @everywhere using PyCall
 @everywhere begin
-    using NPZ, EmulatorsTrainer, JSON3, Random, PyCall
+    using NPZ, EmulatorsTrainer, JSON3, Random, LinearAlgebra, PyCall
+    BLAS.set_num_threads(1)
     pars = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "Mν", "w0", "wa"]
-    lb = [0.29, 2.5, 0.8,  50.0, 0.02,  0.09, 0.0, -3.0, -3.,]
-    ub = [1.6,  3.5, 1.10, 90.0, 0.025, 0.18, 0.5, +0.5, +2.]
+    lb = [0.285, 2.0, 0.8, 50.0, 0.02, 0.08, 0.0, -3.0, -3.0,]
+    ub = [1.9, 3.5, 1.10, 90.0, 0.025, 0.18, 0.5, +0.5, +2.0]
 
     PyCall.py"""
     import numpy as np
@@ -94,13 +96,13 @@ addprocs_lsf(40; bsub_flags=`-q long -n 1 -M 4094 -e /home/mbonici/emulator-zoo/
         return kk, pk_lin, kd, P11l, Ploopl, Pctl
     """
 
-    n = 10000
+    n = 150000
     s = EmulatorsTrainer.create_training_dataset(n, lb, ub)
-    s_cond = [s[8, i]+s[9, i] for i in 1:n]
-    s = s[:, s_cond .<0.]
+    s_cond = [s[8, i] + s[9, i] for i in 1:n]
+    s = s[:, s_cond.<0.0]
     @info size(s)
 
-    root_dir = "/farmdisk1/mbonici/effort_pybird_mnuw0wacdm_"*string(n)#this is tuned to my dir, use the right one for you!
+    root_dir = "/farmdisk1/mbonici/effort_pybird_mnuw0wacdm_" * string(n)#this is tuned to my dir, use the right one for you!
 
     function pybird_script(CosmoDict, root_path)
         try
