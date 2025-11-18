@@ -1,6 +1,8 @@
-# emulator-zoo 🦁
+# emulator-zoo
 
-![Image](https://github.com/user-attachments/assets/60c59b07-e758-44f9-b03a-925b6b70c155)
+*"Please do not feed the models" - But feel free to train them!*
+
+![Image](https://res.cloudinary.com/df9pocq2o/image/upload/v1763490991/emulator-zoo_akhtez.png)
 
 *A comprehensive collection of cosmological emulators for high-precision theoretical predictions*
 
@@ -18,7 +20,7 @@ Welcome to **emulator-zoo**, the centralized repository for state-of-the-art cos
 - 🔬 **Multiple Cosmologies**: ΛCDM, w₀wₐCDM, massive neutrinos, and axion models
 - 📊 **Validated Performance**: Comprehensive validation across extensive cosmological parameter spaces
 - 🔧 **Ensemble Methods**: Support for Phalanx.jl ensemble averaging with 50-75% outlier reduction
-- 📦 **Two Backend Frameworks**: Capse.jl (CMB) and Effort.jl (LSS)
+- 📦 **Two Backend Frameworks**: Capse.jl (CMB) and Effort.jl (EFTofLSS)
 - ♻️ **Full Reproducibility**: Complete training pipelines with data generation scripts
 
 ## 📋 Table of Contents
@@ -68,10 +70,14 @@ julia> include("Capse.jl/class_mnuw0wacdm/validator.jl")
 | Emulator | Theory Code | Redshifts | Multipoles | Status |
 |----------|-------------|-----------|------------|--------|
 | `pybird_mnulcdm` | PyBird | Variable | P₀, P₂, P₄ | ✅ Production |
-| `pybird_mnulcdm_fixed_z` | PyBird | z=0.5 | P₀, P₂, P₄ | ✅ Production |
+| `pybird_mnulcdm_fixed_z` | PyBird | fixed | P₀, P₂, P₄ | ✅ Production |
 | `pybird_mnuw0wacdm` | PyBird | Variable | P₀, P₂, P₄ | ✅ Production |
 | `pybird_w0wacdm` | PyBird | Variable | P₀, P₂, P₄ | ✅ Production |
-| `velocileptors_lcdm` | Velocileptors | Variable | P₀, P₂ | ⚙️ Development |
+| `velocileptors_rept_lcdm` | Velocileptors REPT | Variable | P₀, P₂ | ⚙️ Development |
+| `velocileptors_rept_mnuw0wacdm` | Velocileptors REPT | Variable | P₀, P₂, P₄ | ⚙️ Development |
+| `velocileptors_rept_mnuOkcdm` | Velocileptors REPT | Variable | P₀, P₂, P₄ | ⚙️ Development|
+| `velocileptors_lpt_mnuw0wacdm` | Velocileptors LPT | Variable | P₀, P₂, P₄ | ⚙️ Development |
+| `velocileptors_lpt_mnuOkcdm` | Velocileptors LPT | Variable | P₀, P₂, P₄ | ⚙️ Development|
 
 ## 📊 Usage Examples
 
@@ -169,11 +175,6 @@ emulator-zoo/
 ├── Effort.jl/                   # LSS emulators
 │   ├── pybird_*/                # PyBird-based
 │   └── velocileptors_*/         # Velocileptors-based
-├── phalanx_master_copy/         # Ensemble configurations
-│   ├── TT/                      # Temperature spectrum
-│   ├── EE/                      # E-mode polarization
-│   ├── TE/                      # Cross-correlation
-│   └── PP/                      # Lensing potential
 └── validation_scripts/          # Validation tools
 ```
 
@@ -200,5 +201,3 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-*"Please do not feed the models" - But feel free to train them! 🦁*
