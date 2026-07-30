@@ -1,0 +1,73 @@
+import numpy as np
+from scipy.interpolate import CubicSpline
+
+import camb
+
+
+def lobatto_nodes(n_nodes, lower=2.0, upper=9000.0):
+    theta = np.linspace(0.0, np.pi, n_nodes)
+    nodes = 0.5 * (lower + upper) - 0.5 * (upper - lower) * np.cos(theta)
+    nodes[0] = lower
+    nodes[-1] = upper
+    return nodes
+
+
+def compute_spectra(parameters, lmax=9000):
+    mnu = parameters["Mnu"]
+    pars = camb.CAMBparams()
+    pars.set_cosmology(
+        H0=parameters["H0"],
+        ombh2=parameters["omega_b"],
+        omch2=parameters["omega_c"],
+        omk=0.0,
+        TCMB=2.7255,
+        mnu=mnu,
+        num_massive_neutrinos=1 if mnu > 0.0 else 0,
+        nnu=3.046,
+        YHe=0.2454,
+    )
+    pars.InitPower.set_params(
+        As=np.exp(parameters["ln10As"]) * 1.0e-10,
+        ns=parameters["ns"],
+        pivot_scalar=0.05,
+    )
+    pars.Reion.set_tau(parameters["tau"])
+    pars.set_dark_energy(
+        w=parameters["w0"],
+        wa=parameters["wa"],
+        dark_energy_model="ppf",
+    )
+    pars.NonLinear = camb.model.NonLinear_both
+    pars.NonLinearModel.set_params(halofit_version="mead2020")
+    pars = camb.set_params(
+        cp=pars,
+        kmax=10,
+        k_per_logint=130,
+        lens_potential_accuracy=8,
+        lAccuracyBoost=1.2,
+        min_l_logl_sampling=6000,
+        DoLateRadTruncation=False,
+        halofit_version="mead2020",
+        lmax=lmax + 2000,
+    )
+    results = camb.get_results(pars)
+    cmb = results.get_lensed_scalar_cls(CMB_unit="muK", raw_cl=True)
+    lens = results.get_lens_potential_cls(lmax=lmax, raw_cl=True)
+    ell_full = np.arange(lmax + 1, dtype=np.float64)
+    mask = ell_full >= 2
+    ell = ell_full[mask]
+    dl = ell_full * (ell_full + 1.0) / (2.0 * np.pi)
+    pp_factor = (ell_full * (ell_full + 1.0)) ** 2 / (2.0 * np.pi)
+    dense = {
+        "TT": (cmb[: lmax + 1, 0] * dl)[mask],
+        "TE": (cmb[: lmax + 1, 3] * dl)[mask],
+        "EE": (cmb[: lmax + 1, 1] * dl)[mask],
+        "PP": (lens[: lmax + 1, 0] * pp_factor)[mask],
+    }
+    nodes_256 = lobatto_nodes(256, 2.0, float(lmax))
+    nodes_192 = lobatto_nodes(192, 2.0, float(lmax))
+    output = {f"{name}_dense": values for name, values in dense.items()}
+    for name in ("TT", "TE", "EE"):
+        output[name] = CubicSpline(ell, dense[name])(nodes_256)
+    output["PP"] = CubicSpline(ell, dense["PP"])(nodes_192)
+    return output

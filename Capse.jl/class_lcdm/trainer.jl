@@ -5,8 +5,6 @@ using JSON
 using AbstractCosmologicalEmulators
 using SimpleChains
 using ArgParse
-using EmulatorsTrainer
-using DelimitedFiles
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -54,23 +52,31 @@ end
 
 n_input_features = 6
 n_output_features = 2999
-observable_file = "/" * SpectraKind * ".npy"
-param_file = "/capse_dict.json"
-add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
+dataset = EmulatorsTrainer.load_hdf5_dataset(CℓDirectory)
+parameters = dataset.parameters
+parameter_names = dataset.parameter_names
+observable = get(dataset.observables, Symbol(SpectraKind), nothing)
+observable === nothing && error("Observable $SpectraKind is not present in $CℓDirectory")
+all(dataset.valid) || error("HDF5 dataset contains invalid samples")
 
-df = DataFrame(ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], τ=Float64[], observable=Array[])
-@time EmulatorsTrainer.load_df_directory!(df, CℓDirectory, add_observable!)
+df = DataFrame(ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[],
+    omega_cdm=Float64[], τ=Float64[], observable=Array[])
+for sample_index in axes(parameters, 1)
+    cosmo_pars = Dict(parameter_names[j] => parameters[sample_index, j] for j in axes(parameters, 2))
+    push!(df, get_observable_tuple(cosmo_pars, observable[sample_index, :]))
+end
 
 array_pars_in = ["ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "τ"]
-in_array, out_array = EmulatorsTrainer.extract_input_output_df(df)
+_, out_array = EmulatorsTrainer.extract_input_output_df(df; input_columns=Symbol.(array_pars_in))
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
 out_MinMax = EmulatorsTrainer.get_minmax_out(out_array);
 
 folder_output = OutDirectory * "/" * string(SpectraKind)
+mkpath(folder_output)
 npzwrite(folder_output * "/inminmax.npy", in_MinMax)
 npzwrite(folder_output * "/outminmax.npy", out_MinMax)
 
-EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax)
+EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax; input_columns=Symbol.(array_pars_in))
 
 println(minimum(df[!, "ln10A_s"]), " , ", maximum(df[!, "ln10A_s"]))
 println(minimum(df[!, "ns"]), " , ", maximum(df[!, "ns"]))
@@ -80,12 +86,13 @@ println(minimum(df[!, "omega_cdm"]), " , ", maximum(df[!, "omega_cdm"]))
 println(minimum(df[!, "τ"]), " , ", maximum(df[!, "τ"]))
 println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
 
-NN_dict = JSON.parsefile("nn_setup.json")
+NN_dict = JSON.parsefile(joinpath(@__DIR__, "nn_setup.json"))
 NN_dict["n_output_features"] = n_output_features
 NN_dict["n_input_features"] = n_input_features
+NN_dict["emulator_description"] = Dict("source"=>"CLASS LCDM", "spectrum"=>SpectraKind)
 mlpd = AbstractCosmologicalEmulators._get_nn_simplechains(NN_dict);
 
-X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df);
+X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df; input_columns=Symbol.(array_pars_in), seed=20260751);
 
 p = SimpleChains.init_params(mlpd)
 G = SimpleChains.alloc_threaded_grad(mlpd);
@@ -105,9 +112,9 @@ end
 
 
 dest = joinpath(folder_output, "postprocessing.py")
-run(`cp postprocessing.py $dest`)
+run(`cp $(joinpath(@__DIR__, "postprocessing.py")) $dest`)
 dest = joinpath(folder_output, "postprocessing.jl")
-run(`cp postprocessing.jl $dest`)
+run(`cp $(joinpath(@__DIR__, "postprocessing.jl")) $dest`)
 
 
 report = let mtrain = mlpdloss, X = X, Xtest = Xtest, mtest = mlpdtest
@@ -122,10 +129,13 @@ pippo_loss = mlpdtest(Xtest, p)
 println("Initial Loss: ", pippo_loss)
 lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7]
 
+steps_per_session = parse(Int, get(ENV, "CAPSE_STEPS_PER_SESSION", "1000"))
+sessions_per_rate = parse(Int, get(ENV, "CAPSE_SESSIONS_PER_RATE", "10"))
+batch_size = parse(Int, get(ENV, "CAPSE_BATCH_SIZE", "128"))
 for lr in lr_list
-    for i in 1:10
-        @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 1000
-            ; batchsize=128)
+    for i in 1:sessions_per_rate
+        @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), steps_per_session
+            ; batchsize=batch_size)
         report(p)
         test = mlpdtest(Xtest, p)
         if pippo_loss > test
