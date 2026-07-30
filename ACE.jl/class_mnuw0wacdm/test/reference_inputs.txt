@@ -1,0 +1,4 @@
+# Original farm calculation reference input
+# z ln10As ns H0 ombh2 omch2 Mnu w0 wa
+0.8 3.044 0.965 67.4 0.0224 0.12 0.06 -1.0 0.0
+
