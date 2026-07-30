@@ -1,0 +1,14 @@
+[deps]
+AbstractCosmologicalEmulators = "c83c1981-e5c4-4837-9eb8-c9b1572acfc6"
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+EmulatorsTrainer = "ef107171-9c1d-4869-9860-ac18fb1a7e36"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+LSFClusterManager = "af02cf76-cbe3-4eeb-96a8-af9391005858"
+Mapse = "8a74af7f-8333-416a-8f03-989ffaa4680e"
+NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
