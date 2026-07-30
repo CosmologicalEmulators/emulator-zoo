@@ -1,0 +1,11 @@
+using AbstractCosmologicalEmulators, Effort, EmulatorsTrainer, JSON3
+const P=@__DIR__; const D=joinpath(P,"data","smoke_50"); const O=joinpath(P,"artifacts","smoke_50")
+isdir(D)&&rm(D;recursive=true); isdir(O)&&rm(O;recursive=true)
+j=Base.julia_cmd(); run(`$j --project=$P $(joinpath(P,"data_generation_local.jl")) --samples 50 --output $D`)
+run(`$j -t 8 --project=$P $(joinpath(P,"trainer.jl")) --component loop --multipole 0 --path-input $(joinpath(D,"dataset.h5")) --path-output $O --steps-per-session 100 --sessions-per-rate 1 --batch-size 32`)
+emu=Effort.load_component_emulator(joinpath(O,"0","loop")*"/";emu=SimpleChainsEmulator,postprocessing_file="postprocessing.jl")
+dataset=EmulatorsTrainer.load_hdf5_dataset(joinpath(D,"dataset.h5"))
+x=vec(dataset.parameters[1,:])
+y=Base.invokelatest(Effort.get_component,x,0.8,emu)
+size(y)==(59,9)||error("bad shape"); all(isfinite,y)||error("nonfinite prediction")
+println("LPT Mnu-OmegaK smoke test passed")

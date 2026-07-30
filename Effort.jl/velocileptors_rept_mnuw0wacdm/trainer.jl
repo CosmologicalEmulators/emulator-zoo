@@ -94,25 +94,33 @@ end
 n_input_features = 9
 n_output_features = nk * nk_factor
 
-observable_file = "/pk_" * string(ℓ) * ".npy"
-param_file = "/effort_dict.json"
-add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
+observable_name = Symbol("pk_$(ℓ)")
+dataset = EmulatorsTrainer.load_hdf5_dataset(PℓDirectory)
+parameters_array = dataset.parameters
+parameter_names = dataset.parameter_names
+observable = get(dataset.observables, observable_name, nothing)
+observable === nothing && error("Observable $observable_name is not present in $PℓDirectory")
+all(dataset.valid) || error("HDF5 dataset contains invalid samples")
 
 df = DataFrame(z=Float64[], ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], Mν=Float64[], w0=Float64[], wa=Float64[], observable=Array[])
-@info PℓDirectory
-@time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
-
+for sample_index in axes(parameters_array, 1)
+    cosmo_pars = Dict(parameter_names[j] => parameters_array[sample_index, j]
+        for j in axes(parameters_array, 2))
+    push!(df, get_observable_tuple(cosmo_pars, observable[sample_index, :, :]))
+end
+size(df, 1) >= 2 || error("Too few samples")
 
 array_pars_in = ["z", "ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "Mν", "w0", "wa"]
-in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_features, n_output_features)
+_, out_array = EmulatorsTrainer.extract_input_output_df(df; input_columns=Symbol.(array_pars_in))
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
-out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
+out_MinMax = EmulatorsTrainer.get_minmax_out(out_array);
 
 folder_output = OutDirectory * "/" * string(ℓ) * "/" * string(Componentkind)
+mkpath(folder_output)
 npzwrite(folder_output * "/inminmax.npy", in_MinMax)
 npzwrite(folder_output * "/outminmax.npy", out_MinMax)
 
-EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax)
+EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax; input_columns=Symbol.(array_pars_in))
 
 println(minimum(df[!, "z"]), " , ", maximum(df[!, "z"]))
 println(minimum(df[!, "ln10A_s"]), " , ", maximum(df[!, "ln10A_s"]))
@@ -125,18 +133,29 @@ println(minimum(df[!, "w0"]), " , ", maximum(df[!, "w0"]))
 println(minimum(df[!, "wa"]), " , ", maximum(df[!, "wa"]))
 println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
 
-NN_dict = JSON.parsefile("nn_setup.json")
-NN_dict["n_output_features"] = n_output_features
-NN_dict["n_input_features"] = n_input_features
+NN_dict = Dict{String,Any}(
+    "n_input_features" => n_input_features,
+    "n_output_features" => n_output_features,
+    "n_hidden_layers" => 5,
+    "emulator_description" => Dict(
+        "source" => "CLASS + Velocileptors REPT",
+        "cosmology" => "Mnu-w0-waCDM",
+        "component" => Componentkind,
+        "multipole" => ℓ,
+    ),
+    "layers" => Dict(
+        "layer_$index" => Dict("n_neurons" => 64, "activation_function" => "tanh")
+        for index in 1:5
+    ),
+)
 mlpd = AbstractCosmologicalEmulators._get_nn_simplechains(NN_dict);
 
-X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df, n_input_features, n_output_features);
+X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df; input_columns=Symbol.(array_pars_in), seed=20260745);
 
 p = SimpleChains.init_params(mlpd)
 G = SimpleChains.alloc_threaded_grad(mlpd);
 
-dest = joinpath(folder_output, "k.npy")
-run(`cp k.npy $dest`)
+npzwrite(joinpath(folder_output, "k.npy"), vec(dataset.observables[:kv][1, :]))
 
 dest = joinpath(folder_output, "nn_setup.json")
 json_str = JSON.json(NN_dict)
@@ -190,8 +209,12 @@ pippo_loss = mlpdtest(Xtest, p)
 println("Initial Loss: ", pippo_loss)
 lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7, 5e-6, 2e-7]
 
+steps_per_session = parse(Int, get(ENV, "CAPSE_STEPS_PER_SESSION", "2000"))
+sessions_per_rate = parse(Int, get(ENV, "CAPSE_SESSIONS_PER_RATE", "20"))
+batch_size = parse(Int, get(ENV, "CAPSE_BATCH_SIZE", "128"))
+
 for lr in lr_list
-    for i in 1:20
+    for i in 1:sessions_per_rate
         @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 2000
             ; batchsize=512)
         report(p)

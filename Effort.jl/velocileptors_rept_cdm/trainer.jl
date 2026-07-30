@@ -75,37 +75,43 @@ end
 n_input_features = 3
 n_output_features = nk * nk_factor
 
-observable_file = "/pk_" * string(ℓ) * ".npy"
-param_file = "/effort_dict.json"
-add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
+observable_name = Symbol("pk_$(ℓ)")
+dataset = EmulatorsTrainer.load_hdf5_dataset(PℓDirectory)
+parameters_array = dataset.parameters
+parameter_names = dataset.parameter_names
+observable = get(dataset.observables, observable_name, nothing)
+observable === nothing && error("Observable $observable_name is not present in $PℓDirectory")
+all(dataset.valid) || error("HDF5 dataset contains invalid samples")
 
 df = DataFrame(ln10As=Float64[], H0=Float64[], omch2=Float64[], observable=Array[])
-@info PℓDirectory
-@time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
-
+for sample_index in axes(parameters_array, 1)
+    cosmo_pars = Dict(parameter_names[j] => parameters_array[sample_index, j]
+        for j in axes(parameters_array, 2))
+    push!(df, get_observable_tuple(cosmo_pars, observable[sample_index, :, :]))
+end
+size(df, 1) >= 2 || error("Too few samples")
 
 array_pars_in = ["ln10As", "H0", "omch2"]
-in_array, out_array = EmulatorsTrainer.extract_input_output_df(df)
+_, out_array = EmulatorsTrainer.extract_input_output_df(df; input_columns=Symbol.(array_pars_in))
 in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
 out_MinMax = EmulatorsTrainer.get_minmax_out(out_array);
 
 folder_output = OutDirectory * "/" * string(ℓ) * "/" * string(Componentkind)
+mkpath(folder_output)
 npzwrite(folder_output * "/inminmax.npy", in_MinMax)
 npzwrite(folder_output * "/outminmax.npy", out_MinMax)
 
-EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax)
+EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax; input_columns=Symbol.(array_pars_in))
 
 println(minimum(df[!, "ln10As"]), " , ", maximum(df[!, "ln10As"]))
 println(minimum(df[!, "H0"]), " , ", maximum(df[!, "H0"]))
 println(minimum(df[!, "omch2"]), " , ", maximum(df[!, "omch2"]))
 println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
 
-NN_dict = JSON.parsefile("nn_setup.json")
-NN_dict["n_output_features"] = n_output_features
-NN_dict["n_input_features"] = n_input_features
+NN_dict = Dict{String,Any}("n_input_features"=>n_input_features,"n_output_features"=>n_output_features,"n_hidden_layers"=>5,"emulator_description"=>Dict("source"=>"CLASS + Velocileptors REPT","cosmology"=>"CDM fixed-z","component"=>Componentkind,"multipole"=>ℓ),"layers"=>Dict("layer_$i"=>Dict("n_neurons"=>64,"activation_function"=>"tanh") for i in 1:5))
 mlpd = AbstractCosmologicalEmulators._get_nn_simplechains(NN_dict);
 
-X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df);
+X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df; input_columns=Symbol.(array_pars_in), seed=20260749);
 
 p = SimpleChains.init_params(mlpd)
 G = SimpleChains.alloc_threaded_grad(mlpd);
@@ -151,8 +157,12 @@ end;
 pippo_loss = mlpdtest(Xtest, p)
 println("Initial Loss: ", pippo_loss)
 lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7]
+steps_per_session = parse(Int, get(ENV, "CAPSE_STEPS_PER_SESSION", "2000"))
+sessions_per_rate = parse(Int, get(ENV, "CAPSE_SESSIONS_PER_RATE", "10"))
+batch_size = parse(Int, get(ENV, "CAPSE_BATCH_SIZE", "128"))
+
 for lr in lr_list
-    for i in 1:10
+    for i in 1:sessions_per_rate
         @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 2000   #η = 1e-4
             ; batchsize=256)
         report(p)

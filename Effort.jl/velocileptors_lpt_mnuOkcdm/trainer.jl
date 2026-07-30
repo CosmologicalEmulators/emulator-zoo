@@ -1,209 +1,62 @@
-using EmulatorsTrainer
-using DataFrames
-using NPZ
-using JSON
-using AbstractCosmologicalEmulators
-using SimpleChains
-using Effort
-using ArgParse
-using DelimitedFiles
+using AbstractCosmologicalEmulators, ArgParse, DataFrames, Effort, EmulatorsTrainer, JSON3, NPZ
+
+const INPUT_COLUMNS = [:z, :ln10As, :ns, :H0, :ombh2, :omch2, :Mν, :ωk]
 
 function parse_commandline()
-    s = ArgParseSettings()
-
+    s=ArgParseSettings()
     @add_arg_table s begin
-        "--component"
-        help = "the component we are training. Either 11, loop, ct or st"
-        default = "11"
-        "--multipole", "-l"
-        help = "the multipole we are training. Either 0, 2, or 4"
-        arg_type = Int
-        default = 0
-        "--path_input", "-i"
-        help = "input folder"
-        required = true
-        "--path_output", "-o"
-        help = "output folder"
-        required = true
+        "--component"; default="loop"
+        "--multipole", "-l"; arg_type=Int; default=0
+        "--path-input", "-i"; required=true
+        "--path-output", "-o"; required=true
+        "--steps-per-session"; arg_type=Int; default=2000
+        "--sessions-per-rate"; arg_type=Int; default=10
+        "--batch-size"; arg_type=Int; default=256
+        "--split-seed"; arg_type=Int; default=20260742
     end
-
-    return parse_args(s)
+    parse_args(s)
 end
 
-parsed_args = parse_commandline()
-global Componentkind = parsed_args["component"]
-ℓ = parsed_args["multipole"]
-PℓDirectory = parsed_args["path_input"]
-OutDirectory = parsed_args["path_output"]
-@info ℓ
-@info PℓDirectory
-@info OutDirectory
-@info Componentkind
-global nk = 59
+component_columns(c) = c == "11" ? (1:3) : c == "loop" ? (4:12) : c == "ct" ? (13:16) : error("Bad component $c")
 
-if Componentkind == "11"
-    nk_factor = 3
-elseif Componentkind == "loop"
-    nk_factor = 9
-elseif Componentkind == "ct"
-    nk_factor = 4
-else
-    @error "Wrong component!"
+function factor(p, component)
+    h=p["H0"]/100; ωk=p["Omega_k"]*h^2
+    cosmo=Effort.w0waCDMCosmology(ln10Aₛ=3.0,nₛ=0.96,h=h,ωb=p["ombh2"],ωc=p["omch2"],mν=p["Mν"],ωk=ωk)
+    base=exp(p["ln10As"])*1e-10*Effort.D_z(p["z"],cosmo)^2
+    component=="loop" ? base^2 : base
 end
 
-function reshape_Pk(Pk, factor)
-    if Componentkind == "11"
-        result = vec(Array(Pk)[:, 1:3]) ./ factor
-    elseif Componentkind == "loop"
-        result = vec(Array(Pk)[:, 4:12]) ./ factor^2
-    elseif Componentkind == "ct"
-        result = vec(Array(Pk)[:, 13:16]) ./ factor
-    else
-        @error "Wrong component!"
+function copy_template(source,dest,out)
+    isfile(joinpath(@__DIR__,source)) || error("Missing template $source")
+    cp(joinpath(@__DIR__,source),joinpath(out,dest);force=true)
+end
+
+function main()
+    a=parse_commandline(); c=a["component"]; ell=a["multipole"]; cols=component_columns(c)
+    input=abspath(a["path-input"]); out=joinpath(abspath(a["path-output"]),string(ell),c); mkpath(out)
+    dataset=load_hdf5_dataset(input); all(dataset.valid)||error("HDF5 dataset contains invalid samples")
+    pa=dataset.parameters; pn=dataset.parameter_names; obs=get(dataset.observables,Symbol("pk_$(ell)"),nothing)
+    obs===nothing && error("Observable pk_$ell is not present in $input")
+    df=DataFrame(sample_id=String[],z=Float64[],ln10As=Float64[],ns=Float64[],H0=Float64[],ombh2=Float64[],omch2=Float64[],Mν=Float64[],ωk=Float64[],observable=Vector{Float64}[])
+    for i in axes(pa,1)
+        p=Dict(pn[j]=>pa[i,j] for j in axes(pa,2)); h=p["H0"]/100
+        push!(df,(sample_id="sample_$(lpad(i,6,'0'))",z=Float64(p["z"]),ln10As=Float64(p["ln10As"]),ns=Float64(p["ns"]),H0=Float64(p["H0"]),ombh2=Float64(p["ombh2"]),omch2=Float64(p["omch2"]),Mν=Float64(p["Mν"]),ωk=Float64(p["Omega_k"]*h^2),observable=vec(Array(obs[i,:,:])[:,cols])./factor(p,c)))
     end
-    return result
+    report=(loaded=size(df,1),skipped=0); report.loaded>=2 || error("Too few samples")
+    inmm=get_minmax_in(df,INPUT_COLUMNS); _,y=extract_input_output_df(df;input_columns=INPUT_COLUMNS); outmm=get_minmax_out(y)
+    maximin_df!(df,inmm,outmm;input_columns=INPUT_COLUMNS)
+    xt,yt,xv,yv,ti,vi=getdata(df;seed=a["split-seed"],input_columns=INPUT_COLUMNS,return_indices=true)
+    nd=size(yt,1); nn=Dict{String,Any}("n_input_features"=>8,"n_output_features"=>nd,"n_hidden_layers"=>5,"layers"=>Dict("layer_$i"=>Dict("n_neurons"=>64,"activation_function"=>"tanh") for i=1:5),"emulator_description"=>Dict("source"=>"CLASS + Velocileptors LPT","component"=>c,"multipole"=>ell))
+    network=AbstractCosmologicalEmulators._get_nn_simplechains(nn)
+    config=SimpleChainsTrainingConfig(learning_rates=[1e-4,7e-5,5e-5,2e-5,1e-5,7e-6,5e-6,2e-6,1e-6,7e-7],sessions_per_rate=a["sessions-per-rate"],steps_per_session=a["steps-per-session"],batch_size=a["batch-size"],initialization_seed=20260743)
+    cb=p->(println("steps=$(p.total_steps) validation=$(p.validation_loss)");flush(stdout))
+    result=train_simplechains(network,xt,yt,xv,yv;config,callback=cb)
+    npzwrite(joinpath(out,"inminmax.npy"),inmm);npzwrite(joinpath(out,"outminmax.npy"),outmm)
+    npzwrite(joinpath(out,"k.npy"),vec(dataset.observables[:kv][1,:]));npzwrite(joinpath(out,"train_indices.npy"),ti.-1);npzwrite(joinpath(out,"validation_indices.npy"),vi.-1)
+    open(joinpath(out,"nn_setup.json"),"w") do io;JSON3.write(io,nn);end
+    copy_template(c=="loop" ? "postprocessing_loop.jl" : "postprocessing.jl","postprocessing.jl",out)
+    copy_template(c=="loop" ? "postprocessing_loop.py" : "postprocessing.py","postprocessing.py",out)
+    copy_template("stochmodel_$(ell).jl","stochmodel.jl",out);copy_template("stochmodel_$(ell).py","stochmodel.py",out)
+    save_training_result(out,result;metadata=Dict("n_loaded"=>report.loaded,"n_train"=>length(ti),"n_validation"=>length(vi),"component"=>c,"multipole"=>ell))
 end
-
-function D_ODE(z, ωb, ωcdm, h, Mν, ωk)
-    cosmology = Effort.w0waCDMCosmology(
-        ln10Aₛ=3.0, nₛ=0.96, h=h,
-        ωb=ωb, ωc=ωcdm, mν=Mν,
-        ωk=ωk
-    )
-
-    return Effort.D_z(z, cosmology)
-end
-
-preprocess(z, As, ωb, ωcdm, h, Mν, ωk) = As * D_ODE(z, ωb, ωcdm, h, Mν, ωk)^2
-
-function get_observable_tuple(cosmo_pars, Pk)
-    z = cosmo_pars["z"]
-    ωb = cosmo_pars["ombh2"]
-    ωcdm = cosmo_pars["omch2"]
-    Mν = cosmo_pars["Mν"]
-    h = cosmo_pars["H0"] / 100
-    As = exp(cosmo_pars["ln10As"]) * 1e-10
-    Omega_k = cosmo_pars["Omega_k"]
-    ωk = Omega_k * h^2
-
-    factor = preprocess(z, As, ωb, ωcdm, h, Mν, ωk)
-    return (cosmo_pars["z"], cosmo_pars["ln10As"], cosmo_pars["ns"], cosmo_pars["H0"],
-        cosmo_pars["ombh2"], cosmo_pars["omch2"], cosmo_pars["Mν"], ωk, reshape_Pk(Pk, factor))
-end
-
-n_input_features = 8
-n_output_features = nk * nk_factor
-
-observable_file = "/pk_" * string(ℓ) * ".npy"
-param_file = "/effort_dict.json"
-add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
-
-df = DataFrame(z=Float64[], ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], Mν=Float64[], ωk=Float64[], observable=Array[])
-@info PℓDirectory
-@time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
-
-
-
-array_pars_in = ["z", "ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "Mν", "ωk"]
-in_array, out_array = EmulatorsTrainer.extract_input_output_df(df, n_input_features, n_output_features)
-in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
-out_MinMax = EmulatorsTrainer.get_minmax_out(out_array, n_output_features);
-
-folder_output = OutDirectory * "/" * string(ℓ) * "/" * string(Componentkind)
-npzwrite(folder_output * "/inminmax.npy", in_MinMax)
-npzwrite(folder_output * "/outminmax.npy", out_MinMax)
-
-EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax)
-
-println(minimum(df[!, "z"]), " , ", maximum(df[!, "z"]))
-println(minimum(df[!, "ln10A_s"]), " , ", maximum(df[!, "ln10A_s"]))
-println(minimum(df[!, "ns"]), " , ", maximum(df[!, "ns"]))
-println(minimum(df[!, "H0"]), " , ", maximum(df[!, "H0"]))
-println(minimum(df[!, "omega_b"]), " , ", maximum(df[!, "omega_b"]))
-println(minimum(df[!, "omega_cdm"]), " , ", maximum(df[!, "omega_cdm"]))
-println(minimum(df[!, "Mν"]), " , ", maximum(df[!, "Mν"]))
-println(minimum(df[!, "ωk"]), " , ", maximum(df[!, "ωk"]))
-println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
-
-NN_dict = JSON.parsefile("nn_setup.json")
-NN_dict["n_output_features"] = n_output_features
-NN_dict["n_input_features"] = n_input_features
-mlpd = AbstractCosmologicalEmulators._get_nn_simplechains(NN_dict);
-
-X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df, n_input_features, n_output_features);
-
-p = SimpleChains.init_params(mlpd)
-G = SimpleChains.alloc_threaded_grad(mlpd);
-
-dest = joinpath(folder_output, "k.npy")
-run(`cp k.npy $dest`)
-
-dest = joinpath(folder_output, "nn_setup.json")
-json_str = JSON.json(NN_dict)
-open(dest, "w") do file
-    write(file, json_str)
-end
-
-if Componentkind == "loop"
-    dest = joinpath(folder_output, "postprocessing.py")
-    run(`cp postprocessing_loop.py $dest`)
-    dest = joinpath(folder_output, "postprocessing.jl")
-    run(`cp postprocessing_loop.jl $dest`)
-else
-    dest = joinpath(folder_output, "postprocessing.py")
-    run(`cp postprocessing.py $dest`)
-    dest = joinpath(folder_output, "postprocessing.jl")
-    run(`cp postprocessing.jl $dest`)
-end
-
-if ℓ == 0
-    dest = joinpath(folder_output, "stochmodel.py")
-    run(`cp stochmodel_0.py $dest`)
-    dest = joinpath(folder_output, "stochmodel.jl")
-    run(`cp stochmodel_0.jl $dest`)
-elseif ℓ == 2
-    dest = joinpath(folder_output, "stochmodel.py")
-    run(`cp stochmodel_2.py $dest`)
-    dest = joinpath(folder_output, "stochmodel.jl")
-    run(`cp stochmodel_2.jl $dest`)
-elseif ℓ == 4
-    dest = joinpath(folder_output, "stochmodel.py")
-    run(`cp stochmodel_4.py $dest`)
-    dest = joinpath(folder_output, "stochmodel.jl")
-    run(`cp stochmodel_4.jl $dest`)
-else
-    @error "Unsupported multipole"
-end
-
-mlpdloss = SimpleChains.add_loss(mlpd, SquaredLoss(Y))
-mlpdtest = SimpleChains.add_loss(mlpd, SquaredLoss(Ytest))
-
-report = let mtrain = mlpdloss, X = X, Xtest = Xtest, mtest = mlpdtest
-    p -> begin
-        let train = mlpdloss(X, p), test = mlpdtest(Xtest, p)
-            @info "Loss:" train test
-        end
-    end
-end;
-
-pippo_loss = mlpdtest(Xtest, p)
-println("Initial Loss: ", pippo_loss)
-lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7, 5e-6, 2e-7]
-
-for lr in lr_list
-    for i in 1:20
-        @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 2000
-            ; batchsize=256)
-        report(p)
-        test = mlpdtest(Xtest, p)
-        if pippo_loss > test
-            npzwrite(folder_output * "/weights.npy", p)
-            global pippo_loss = test
-            @info "Saving coefficients! Test loss is equal to :" test
-        end
-    end
-end
-
-
-
-exit()
+main()

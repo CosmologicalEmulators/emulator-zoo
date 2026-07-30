@@ -1,0 +1,8 @@
+Manifest.toml
+data/
+artifacts/
+logs/
+job.err
+job.out
+!postprocessing.jl
+!postprocessing.py
