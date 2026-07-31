@@ -56,8 +56,12 @@ Both launchers call the same scientific implementation in `generation.jl` and pr
 Narval, one complete CPU node with 50,000 LHS candidates:
 
 ```bash
-sbatch --account=rrg-wperciva narval_generate.sbatch
+sbatch --account=rrg-wperciva --export=ALL,FORCE=1 narval_generate.sbatch
 ```
+
+CLASS failures are rejected per sample and recorded in `generation_failures.json`.
+The merged dataset contains only successful samples; `generation_metadata.json`
+records candidate, retained, successful, and failed counts.
 
 ## Training
 

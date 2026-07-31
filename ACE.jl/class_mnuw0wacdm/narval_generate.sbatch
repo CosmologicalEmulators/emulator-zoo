@@ -16,6 +16,10 @@ SAMPLES=${SAMPLES:-50000}
 SEED=${SEED:-20260760}
 OUTPUT=${OUTPUT:-$PROJECT_DIR/data/narval_candidates_${SAMPLES}}
 NWORKERS=$((SLURM_CPUS_PER_TASK - 1))
+FORCE_ARGS=()
+if [[ "${FORCE:-0}" == "1" ]]; then
+    FORCE_ARGS+=(--force)
+fi
 
 (( NWORKERS > 0 )) || {
     echo "At least two CPUs are required: one coordinator and one worker" >&2
@@ -39,4 +43,5 @@ srun --ntasks=1 --cpus-per-task="$SLURM_CPUS_PER_TASK" --cpu-bind=none \
     --samples "$SAMPLES" \
     --seed "$SEED" \
     --processes "$NWORKERS" \
-    --output "$OUTPUT"
+    --output "$OUTPUT" \
+    "${FORCE_ARGS[@]}"

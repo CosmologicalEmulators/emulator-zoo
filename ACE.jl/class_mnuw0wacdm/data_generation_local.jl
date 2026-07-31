@@ -36,14 +36,20 @@ dataset_file = compute_dataset_hdf5(
     ACEClassMnuW0WaGeneration.compute_observables;
     mode=(n_processes > 0 ? :distributed : :serial),
     force=arguments["force"],
+    skip_errors=true,
 )
+dataset = load_hdf5_dataset(dataset_file)
+successful_samples = size(dataset.parameters, 1)
 open(joinpath(output_directory, "generation_metadata.json"), "w") do stream
     JSON3.write(stream, Dict(
         "created_at" => string(now()),
         "candidate_samples" => arguments["samples"],
         "retained_samples" => retained_samples,
+        "successful_samples" => successful_samples,
+        "failed_samples" => retained_samples - successful_samples,
         "acceptance_fraction" => retained_samples / arguments["samples"],
         "constraint" => "w0 + wa <= 0",
+        "failure_log" => joinpath(output_directory, "generation_failures.json"),
         "processes" => nworkers(),
         "seed" => arguments["seed"],
         "dataset_file" => dataset_file,
