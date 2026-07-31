@@ -78,6 +78,33 @@ network_dictionary = Dict{String,Any}(
     ),
 )
 network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
+output_directory = joinpath(abspath(arguments["path-output"]), basis)
+mkpath(output_directory)
+npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
+npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
+npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
+npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
+open(joinpath(output_directory, "nn_setup.json"), "w") do stream
+    JSON3.write(stream, network_dictionary)
+end
+open(joinpath(output_directory, "training_metadata.json"), "w") do stream
+    JSON3.write(stream, Dict(
+        "status" => "running",
+        "basis" => basis,
+        "n_loaded" => size(frame, 1),
+        "n_train" => length(train_indices),
+        "n_validation" => length(validation_indices),
+        "split_seed" => arguments["split-seed"],
+        "initialization_seed" => arguments["initialization-seed"],
+        "architecture" => network_dictionary,
+    ))
+end
+weights_path = joinpath(output_directory, "weights.npy")
+checkpoint_callback = parameters -> begin
+    temporary_path = weights_path * ".tmp"
+    npzwrite(temporary_path, parameters)
+    mv(temporary_path, weights_path; force=true)
+end
 config = SimpleChainsTrainingConfig(
     learning_rates=[1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7],
     sessions_per_rate=arguments["sessions-per-rate"],
@@ -90,18 +117,12 @@ callback = progress -> println(
     "validation=$(progress.validation_loss) best=$(progress.best_validation_loss)",
 )
 result = train_simplechains(
-    network, x_train, y_train, x_validation, y_validation; config, callback,
+    network, x_train, y_train, x_validation, y_validation;
+    config,
+    callback,
+    checkpoint_callback=(parameters, _) -> checkpoint_callback(parameters),
 )
 
-output_directory = joinpath(abspath(arguments["path-output"]), basis)
-mkpath(output_directory)
-npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
-npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
-npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
-open(joinpath(output_directory, "nn_setup.json"), "w") do stream
-    JSON3.write(stream, network_dictionary)
-end
 save_training_result(output_directory, result; metadata=Dict(
     "basis" => basis,
     "n_loaded" => size(frame, 1),
@@ -110,4 +131,3 @@ save_training_result(output_directory, result; metadata=Dict(
     "split_seed" => arguments["split-seed"],
 ))
 println("Best validation loss: $(result.best_validation_loss)")
-
