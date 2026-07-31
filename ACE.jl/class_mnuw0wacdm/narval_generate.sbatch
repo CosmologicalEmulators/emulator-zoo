@@ -2,10 +2,9 @@
 #SBATCH --job-name=ace-class-50k
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=64
-#SBATCH --mem=0
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
 #SBATCH --time=04:00:00
-#SBATCH --exclusive
 #SBATCH --output=ace_class_%j.out
 #SBATCH --error=ace_class_%j.err
 
