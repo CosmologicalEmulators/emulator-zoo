@@ -65,6 +65,19 @@ records candidate, retained, successful, and failed counts.
 
 ## Training
 
+The trainer uses five hidden layers of 64 neurons with `tanh` activation.
+Submit one Slurm job per basis:
+
+```bash
+sbatch --account=rrg-wperciva --export=ALL,BASIS=ln10As narval_train.sbatch
+sbatch --account=rrg-wperciva --export=ALL,BASIS=sigma8 narval_train.sbatch
+```
+
+The default schedule is 40 sessions at each of 10 learning rates, with 4,000
+steps per session and batch size 1,024. Override these through `sbatch` exports,
+for example `--export=ALL,BASIS=ln10As,SESSIONS_PER_RATE=1,STEPS_PER_SESSION=100`
+for a short training check.
+
 ```bash
 julia --project=. trainer.jl --basis ln10As \
     -i data/ace_1000/dataset.h5 -o artifacts/ace_1000
