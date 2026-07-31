@@ -102,6 +102,10 @@ steps per session and batch size 256. Override these through `sbatch` exports,
 for example `--export=ALL,BASIS=ln10As,SESSIONS_PER_RATE=1,STEPS_PER_SESSION=100`
 for a short training check.
 
+`narval_train.sbatch` requests one node, one task, 32 CPUs, 16 GB of memory,
+and 12 hours of wall time. It sets `JULIA_NUM_THREADS` to the allocated CPU
+count while keeping BLAS and OpenMP at one thread to avoid oversubscription.
+
 ```bash
 julia --project=. trainer.jl --basis ln10As \
     -i data/ace_1000/dataset.h5 -o artifacts/ace_1000
