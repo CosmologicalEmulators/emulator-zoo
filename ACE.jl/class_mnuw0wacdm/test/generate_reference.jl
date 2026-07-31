@@ -1,8 +1,19 @@
-# This script preserves the original farm scientific calculation. The committed
-# fixture is authoritative; do not rerun this script during tests.
-using Effort
+# This script preserves the ACE scientific calculation. The committed fixture
+# is authoritative; do not rerun this script during tests.
+using AbstractCosmologicalEmulators
+using DataInterpolations
+using FastGaussQuadrature
+using Integrals
+using OrdinaryDiffEqTsit5
 using Printf
 using PyCall
+using SciMLSensitivity
+
+const BACKGROUND_COSMOLOGY = Base.get_extension(
+    AbstractCosmologicalEmulators,
+    :BackgroundCosmologyExt,
+)
+BACKGROUND_COSMOLOGY === nothing && error("BackgroundCosmologyExt is unavailable")
 
 input_lines = filter(
     line -> !startswith(line, "#") && !isempty(strip(line)),
@@ -25,7 +36,10 @@ cosmology.set(Dict(
     "Omega_Lambda" => 0.0, "Omega_scf" => 0.0,
 ))
 cosmology.compute()
-D_z, f_z = Effort.D_f_z(p["z"], Omega_cb, h; mν=p["Mν"], w0=p["w0"], wa=p["wa"])
+D_z, f_z = BACKGROUND_COSMOLOGY.D_f_z(
+    p["z"], Omega_cb, h;
+    mν=p["Mν"], w0=p["w0"], wa=p["wa"],
+)
 common = [Float64(cosmology.sigma(8.0 / h, p["z"])), Float64(cosmology.rs_drag),
     Float64(cosmology.Hubble(p["z"])) * 299792.458, Float64(cosmology.comoving_distance(p["z"])), D_z, f_z]
 for (name, output) in (

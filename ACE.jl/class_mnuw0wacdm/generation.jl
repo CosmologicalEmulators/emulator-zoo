@@ -1,9 +1,14 @@
 module ACEClassMnuW0WaGeneration
 
-using Effort
+using AbstractCosmologicalEmulators
+using DataInterpolations
+using FastGaussQuadrature
 using EmulatorsTrainer
+using Integrals
+using OrdinaryDiffEqTsit5
 using PyCall
 using Random
+using SciMLSensitivity
 
 export PARAMETER_NAMES, LOWER_BOUNDS, UPPER_BOUNDS
 export create_design, initialize_backend, worker_backend, compute_observables
@@ -17,6 +22,17 @@ struct Backend
 end
 
 const WORKER_BACKEND = Ref{Union{Nothing,Backend}}(nothing)
+const BACKGROUND_COSMOLOGY = let
+    extension = Base.get_extension(
+        AbstractCosmologicalEmulators,
+        :BackgroundCosmologyExt,
+    )
+    extension === nothing && error(
+        "BackgroundCosmologyExt is unavailable. " *
+        "Ensure its weak dependencies are present in the project.",
+    )
+    extension
+end
 
 function create_design(n_samples::Integer; seed::Integer=20260760)
     n_samples > 0 || throw(ArgumentError("n_samples must be positive"))
@@ -80,7 +96,7 @@ function compute_observables(parameters, backend::Backend)
         r_drag = Float64(cosmology.rs_drag)
         H_z = Float64(cosmology.Hubble(z)) * 299792.458
         r_z = Float64(cosmology.comoving_distance(z))
-        D_z, f_z = Effort.D_f_z(
+        D_z, f_z = BACKGROUND_COSMOLOGY.D_f_z(
             z, Omega_cb, h;
             mν=parameters["Mν"], w0=parameters["w0"], wa=parameters["wa"],
         )

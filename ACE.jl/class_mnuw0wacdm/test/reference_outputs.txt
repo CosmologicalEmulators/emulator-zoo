@@ -1,4 +1,4 @@
-# Original farm calculation outputs generated with CLASS/classy and Effort.D_f_z
+# Original farm calculation outputs generated with CLASS/classy and AbstractCosmologicalEmulators BackgroundCosmologyExt.D_f_z
 # name value_1 value_2 value_3 value_4 value_5 value_6 value_7
 result_sigma8_basis 3.044 0.53903923971984924 147.06307279061957 107.04248342726964 2873.4840272767128 0.51284269041854114 0.83815914249444934
 result_ln10As_basis 0.81059597317675602 0.53903923971984924 147.06307279061957 107.04248342726964 2873.4840272767128 0.51284269041854114 0.83815914249444934

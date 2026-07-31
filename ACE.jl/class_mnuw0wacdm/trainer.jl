@@ -71,7 +71,7 @@ network_dictionary = Dict{String,Any}(
         for index in 1:5
     ),
     "emulator_description" => Dict(
-        "source" => "CLASS + Effort growth ODE",
+        "source" => "CLASS + AbstractCosmologicalEmulators BackgroundCosmologyExt growth ODE",
         "cosmology" => "Mnu-w0-waCDM",
         "basis" => basis,
         "parameters" => join(string.(input_columns), ", "),
