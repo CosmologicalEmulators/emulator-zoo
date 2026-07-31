@@ -35,6 +35,27 @@ julia --project=. smoke_test.jl
 
 The smoke test generates 50 cosmologies with two local Julia workers, merges their HDF5 shards, and trains both bases with a 40/10 split.
 
+The Lux addition can be exercised locally with a 500-cosmology fixture:
+
+```bash
+julia --project=. lux_smoke_test.jl
+```
+
+This creates the ignored local files under `data/local_500/` and trains both
+bases with the additional `trainer_lux.jl` path. The existing
+`trainer.jl`/SimpleChains path is unchanged.
+
+To compare Zygote with CPU Reactant after Reactant's warmup compilation, run:
+
+```bash
+julia --project=. lux_training_benchmark.jl ln10As
+```
+
+The benchmark uses 100 optimizer steps per session and 10 sessions per
+learning rate, for all ten learning rates. Reactant receives one warmup step;
+the reported training time excludes that warmup. Use `sigma8` as the optional
+argument to benchmark the other basis.
+
 ## Generation
 
 Local:

@@ -11,8 +11,8 @@
 set -euo pipefail
 
 PROJECT_DIR=${PROJECT_DIR:-$SLURM_SUBMIT_DIR}
-DATASET=${DATASET:-$PROJECT_DIR/data/narval_candidates_50000/dataset.h5}
-OUTPUT=${OUTPUT:-$PROJECT_DIR/artifacts/narval_candidates_50000}
+DATASET=${DATASET:-$PROJECT_DIR/data/narval_candidates_500000/dataset.h5}
+OUTPUT=${OUTPUT:-$PROJECT_DIR/artifacts/narval_candidates_500000}
 BASIS=${BASIS:-ln10As}
 STEPS_PER_SESSION=${STEPS_PER_SESSION:-4000}
 SESSIONS_PER_RATE=${SESSIONS_PER_RATE:-40}
