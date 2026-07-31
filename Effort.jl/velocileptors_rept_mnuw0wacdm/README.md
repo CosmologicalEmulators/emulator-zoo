@@ -33,6 +33,11 @@ PYTHON=$(julia --project=. --startup-file=no -e \
     git+https://github.com/marcobonici/velocileptors_free.git
 ```
 
+The cosmological design uses `Mν ∈ [0, 1]` eV. The other bounds are
+`z ∈ [0.285, 1.9]`, `ln10As ∈ [2, 3.5]`, `ns ∈ [0.8, 1.1]`,
+`H0 ∈ [50, 90]`, `ombh2 ∈ [0.02, 0.025]`, `omch2 ∈ [0.08, 0.18]`,
+`w0 ∈ [-3, 0.5]`, and `wa ∈ [-3, 2]`, with `w0 + wa < 0`.
+
 The smoke test generates 50 candidates, uses a 40/10 train/validation split,
 and trains the monopole loop component for 100 steps. Its REPT grid has 80
 wavenumbers and nine loop outputs, so the final prediction shape is `80 × 9`.

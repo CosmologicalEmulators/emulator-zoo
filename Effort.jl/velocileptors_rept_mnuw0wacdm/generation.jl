@@ -14,7 +14,7 @@ const PARAMETER_NAMES = [
     "z", "ln10As", "ns", "H0", "ombh2", "omch2", "Mν", "w0", "wa",
 ]
 const LOWER_BOUNDS = [0.285, 2.0, 0.8, 50.0, 0.02, 0.08, 0.0, -3.0, -3.0]
-const UPPER_BOUNDS = [1.9, 3.5, 1.10, 90.0, 0.025, 0.18, 0.5, 0.5, 2.0]
+const UPPER_BOUNDS = [1.9, 3.5, 1.10, 90.0, 0.025, 0.18, 1.0, 0.5, 2.0]
 
 struct VelocileptorsBackend
     classy::PyObject
