@@ -51,9 +51,12 @@ julia --project=. data_generation_lsf.jl \
     --samples 300000 --workers 120 --output /farmdisk1/mbonici/ace_class_mnuw0wacdm_300000
 ```
 
-Both launchers call the same scientific implementation in `generation.jl` and produce `dataset.h5` through worker-local shards.
+All launchers call the same scientific implementation in `generation.jl` and
+produce `dataset.h5` through worker-local shards.
 
-Narval, one complete CPU node with 50,000 LHS candidates:
+Narval uses `SlurmClusterManager.jl` with 128 single-CPU workers, 4 GB per
+worker, and 500,000 LHS candidates. The launcher deliberately omits a node
+count, allowing Slurm to pack or spread the workers across available nodes:
 
 ```bash
 sbatch --account=rrg-wperciva --export=ALL,FORCE=1 narval_generate.sbatch
