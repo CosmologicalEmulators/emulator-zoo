@@ -1,1 +1,17 @@
-bsub -P c7 -q long -o /home/mbonici/emulator-zoo/Effort.jl/velocileptors_rept_mnuw0wacdm/job.out -e /home/mbonici/emulator-zoo/Effort.jl/velocileptors_rept_mnuw0wacdm/job.err -n 8 -M 2048 -R"span[hosts=1] select[avx && mem>2048 && hname!=teo22 && hname!=teo24 && hname!=teo25 && hname!=teo26 && hname!=teo27 && hname!=teo28 && hname!=infne01 && hname!=totem04 && hname!=totem07 && hname!=totem08 && hname!=geant15 && hname!=geant16 && hname!=aiace12 && hname!=aiace13 && hname!=aiace14 && hname!=aiace15 && hname!=aiace16 && hname!=aiace17] rusage [mem=2048]" /home/mbonici/emulator-zoo/Effort.jl/velocileptors_rept_mnuw0wacdm/job_data_generation.sh
+#!/bin/bash
+set -euo pipefail
+
+PROJECT_DIR=${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+OUTPUT=${OUTPUT:-$PROJECT_DIR/data/rept_200000}
+
+bsub -P "${PROJECT:-c7}" -q "${QUEUE:-long}" \
+    -o "${PROJECT_DIR}/job.out" \
+    -e "${PROJECT_DIR}/job.err" \
+    -n 1 \
+    -M "${MEMORY_MB:-4096}" \
+    -R 'span[hosts=1]' \
+    env PROJECT_DIR="$PROJECT_DIR" OUTPUT="$OUTPUT" \
+        SAMPLES="${SAMPLES:-200000}" WORKERS="${WORKERS:-80}" \
+        QUEUE="${QUEUE:-long}" MEMORY_MB="${MEMORY_MB:-4096}" \
+        SEED="${SEED:-20260744}" FORCE="${FORCE:-0}" \
+        "$PROJECT_DIR/job_data_generation.sh"

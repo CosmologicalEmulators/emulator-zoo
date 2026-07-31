@@ -5,7 +5,7 @@ function parse_commandline()
     @add_arg_table settings begin
         "--samples"; arg_type=Int; default=50
         "--output"; default=joinpath(@__DIR__, "data", "smoke_50")
-        "--seed"; arg_type=Int; default=20260744
+        "--seed"; arg_type=Int; default=20260738
         "--processes"; arg_type=Int; default=2
         "--force"; action=:store_true
     end
