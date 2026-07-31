@@ -18,6 +18,10 @@ julia --project=. setup_local.jl
 julia --project=. smoke_test.jl
 ```
 
+The setup develops the sibling `EmulatorsTrainer.jl` checkout because this
+pipeline needs its HDF5 dataset API. `Effort.jl` itself is resolved from the
+Julia registry; a local Effort checkout is not required.
+
 The smoke test generates 50 candidates, uses a 40/10 train/validation split,
 and trains the monopole loop component for 100 steps. Its REPT grid has 80
 wavenumbers and nine loop outputs, so the final prediction shape is `80 × 9`.
