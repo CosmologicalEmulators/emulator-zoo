@@ -68,9 +68,10 @@ The merged output is:
 <output>/dataset.h5
 ```
 
-Each sample contains `kv`, `pk_lin`, `pk_0`, `pk_2`, `pk_4`, `knw`, and
-`Pnw`. Failed samples are skipped and recorded by EmulatorsTrainer's HDF5
-generation metadata.
+Each sample contains only `kv`, `pk_0`, `pk_2`, and `pk_4`. The linear and
+no-wiggle spectra are still computed internally because REPT needs them, but
+they are not written to the HDF5 dataset. Failed samples are skipped and
+recorded by EmulatorsTrainer's HDF5 generation metadata.
 
 Slurm generation uses 128 one-CPU tasks and does not request a fixed node
 count, allowing Slurm to place the workers across available nodes:

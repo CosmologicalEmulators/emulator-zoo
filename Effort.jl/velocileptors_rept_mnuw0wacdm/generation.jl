@@ -109,12 +109,9 @@ function compute_observables(parameters, backend::VelocileptorsBackend)
         )
         observables = (
             kv=Vector{Float64}(model.kv),
-            pk_lin=plin,
             pk_0=Array(model.p0ktable),
             pk_2=Array(model.p2ktable),
             pk_4=Array(model.p4ktable),
-            knw=Vector{Float64}(knw),
-            Pnw=Vector{Float64}(pnw),
         )
         for (name, values) in pairs(observables)
             all(isfinite, values) || error("$name contains NaN or Inf")
@@ -140,7 +137,7 @@ end
 function write_sample(root_directory, parameters, observables)
     directory = joinpath(root_directory, sample_id(parameters))
     mkdir(directory)
-    for name in (:kv, :pk_lin, :pk_0, :pk_2, :pk_4, :knw, :Pnw)
+    for name in (:kv, :pk_0, :pk_2, :pk_4)
         npzwrite(joinpath(directory, "$name.npy"), getproperty(observables, name))
     end
     record = Dict{String,Any}(parameters)
