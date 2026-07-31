@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROJECT_DIR=${PROJECT_DIR:-$SLURM_SUBMIT_DIR}
 SAMPLES=${SAMPLES:-50000}
 SEED=${SEED:-20260760}
 OUTPUT=${OUTPUT:-$PROJECT_DIR/data/narval_candidates_${SAMPLES}}
