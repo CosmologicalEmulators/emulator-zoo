@@ -40,8 +40,8 @@ end
 
 function initialize_backend()
     classy = pyimport("classy")
-    rept = pyimport("velocileptors.EPT.ept_fullresum_fftw")
-    pnw = pyimport("velocileptors.Utils.pnw_dst")
+    rept = pyimport("velocileptors_free.EPT.ept_fullresum_fftw")
+    pnw = pyimport("velocileptors_free.Utils.pnw_dst")
     konh = 10.0 .^ range(-3, 1; length=20_000)
     kv = 10.0 .^ range(log10(5.0e-4), log10(0.5); length=80)
     return VelocileptorsBackend(classy, rept, pnw, konh, kv)

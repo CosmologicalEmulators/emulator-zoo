@@ -22,6 +22,17 @@ The setup develops the sibling `EmulatorsTrainer.jl` checkout because this
 pipeline needs its HDF5 dataset API. `Effort.jl` itself is resolved from the
 Julia registry; a local Effort checkout is not required.
 
+The REPT calculation uses the private `velocileptors_free` package rather than
+the public `velocileptors` package. Install it into the exact Python selected
+by PyCall:
+
+```bash
+PYTHON=$(julia --project=. --startup-file=no -e \
+    'using PyCall; print(PyCall.python)')
+"$PYTHON" -m pip install --upgrade \
+    git+https://github.com/marcobonici/velocileptors_free.git
+```
+
 The smoke test generates 50 candidates, uses a 40/10 train/validation split,
 and trains the monopole loop component for 100 steps. Its REPT grid has 80
 wavenumbers and nine loop outputs, so the final prediction shape is `80 × 9`.

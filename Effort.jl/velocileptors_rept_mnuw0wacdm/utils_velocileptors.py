@@ -1,5 +1,5 @@
 import numpy as np
-from velocileptors.EPT.ept_fullresum_fftw import REPT
+from velocileptors_free.EPT.ept_fullresum_fftw import REPT
 from classy import Class
 
 # For the wiggle no-wiggle split of Pk
