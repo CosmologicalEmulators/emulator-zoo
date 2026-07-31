@@ -25,6 +25,8 @@ const GENERATION_FILE = joinpath(@__DIR__, "generation.jl")
 @everywhere using .ACEClassMnuW0WaGeneration
 
 design = ACEClassMnuW0WaGeneration.create_design(arguments["samples"]; seed=arguments["seed"])
+retained_samples = size(design, 2)
+println("Retained $retained_samples of $(arguments["samples"]) LHS candidates after w0 + wa <= 0 rejection")
 output_directory = abspath(arguments["output"])
 start = time()
 dataset_file = compute_dataset_hdf5(
@@ -38,7 +40,10 @@ dataset_file = compute_dataset_hdf5(
 open(joinpath(output_directory, "generation_metadata.json"), "w") do stream
     JSON3.write(stream, Dict(
         "created_at" => string(now()),
-        "requested_samples" => arguments["samples"],
+        "candidate_samples" => arguments["samples"],
+        "retained_samples" => retained_samples,
+        "acceptance_fraction" => retained_samples / arguments["samples"],
+        "constraint" => "w0 + wa <= 0",
         "workers" => arguments["workers"],
         "queue" => arguments["queue"],
         "memory_mb" => arguments["memory-mb"],
@@ -48,4 +53,3 @@ open(joinpath(output_directory, "generation_metadata.json"), "w") do stream
     ))
 end
 println("Wrote merged HDF5 dataset: $dataset_file")
-

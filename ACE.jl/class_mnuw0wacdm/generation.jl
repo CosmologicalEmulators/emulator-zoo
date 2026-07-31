@@ -10,7 +10,7 @@ export create_design, initialize_backend, worker_backend, compute_observables
 
 const PARAMETER_NAMES = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "Mν", "w0", "wa"]
 const LOWER_BOUNDS = [0.0, 2.0, 0.8, 50.0, 0.02, 0.08, 0.0, -3.0, -3.0]
-const UPPER_BOUNDS = [5.0, 3.7, 1.10, 90.0, 0.025, 0.18, 0.5, 0.5, 2.0]
+const UPPER_BOUNDS = [5.0, 4.0, 1.10, 90.0, 0.025, 0.18, 1.0, 0.5, 2.0]
 
 struct Backend
     classy::PyObject
@@ -22,13 +22,9 @@ function create_design(n_samples::Integer; seed::Integer=20260760)
     n_samples > 0 || throw(ArgumentError("n_samples must be positive"))
     Random.seed!(seed)
     design = create_training_dataset(n_samples, LOWER_BOUNDS, UPPER_BOUNDS)
-    w0 = view(design, 8, :)
-    wa = copy(view(design, 9, :))
-    for (w0_index, wa_index) in zip(sortperm(w0), sortperm(wa; rev=true))
-        design[9, w0_index] = wa[wa_index]
-    end
-    all(design[8, :] .+ design[9, :] .< 0) || error("Failed to enforce w0 + wa < 0")
-    return design
+    accepted = vec(design[8, :] .+ design[9, :] .<= 0)
+    any(accepted) || error("The LHS produced no samples satisfying w0 + wa <= 0")
+    return design[:, accepted]
 end
 
 initialize_backend() = Backend(pyimport("classy"))

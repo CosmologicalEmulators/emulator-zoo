@@ -26,3 +26,15 @@ result = ACEClassMnuW0WaGeneration.compute_observables(parameters, ACEClassMnuW0
         @test all(isapprox.(actual, expected; rtol=1e-10, atol=1e-10))
     end
 end
+
+@testset "ACE LHS rejection design" begin
+    n_candidates = 1_000
+    design = ACEClassMnuW0WaGeneration.create_design(n_candidates; seed=20260760)
+    @test size(design, 1) == length(ACEClassMnuW0WaGeneration.PARAMETER_NAMES)
+    @test 0 < size(design, 2) < n_candidates
+    @test all(design[8, :] .+ design[9, :] .<= 0)
+    @test all(design .>= ACEClassMnuW0WaGeneration.LOWER_BOUNDS)
+    @test all(design .<= ACEClassMnuW0WaGeneration.UPPER_BOUNDS)
+    @test maximum(design[2, :]) > 3.9
+    @test maximum(design[7, :]) > 0.9
+end

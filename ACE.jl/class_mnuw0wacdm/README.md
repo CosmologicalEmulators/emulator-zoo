@@ -2,6 +2,10 @@
 
 This pipeline emulates seven CLASS and background-growth quantities in two interchangeable parameter bases.
 
+The LHS spans `z=[0,5]`, `ln10As=[2,4]`, `ns=[0.8,1.1]`, `H0=[50,90]`,
+`ombh2=[0.02,0.025]`, `omch2=[0.08,0.18]`, `Mnu=[0,1] eV`, `w0=[-3,0.5]`,
+and `wa=[-3,2]`. Candidates with `w0 + wa > 0` are rejected before CLASS is run.
+
 The `ln10As` basis takes
 
 ```text
@@ -49,6 +53,12 @@ julia --project=. data_generation_lsf.jl \
 
 Both launchers call the same scientific implementation in `generation.jl` and produce `dataset.h5` through worker-local shards.
 
+Narval, one complete CPU node with 50,000 LHS candidates:
+
+```bash
+sbatch --account=rrg-wperciva narval_generate.sbatch
+```
+
 ## Training
 
 ```bash
@@ -58,4 +68,3 @@ julia --project=. trainer.jl --basis ln10As \
 julia --project=. trainer.jl --basis sigma8 \
     -i data/ace_1000/dataset.h5 -o artifacts/ace_1000
 ```
-
