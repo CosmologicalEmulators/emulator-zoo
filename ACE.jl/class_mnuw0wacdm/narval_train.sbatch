@@ -3,8 +3,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=64G
-#SBATCH --time=04:00:00
+#SBATCH --mem=16G
+#SBATCH --time=02:00:00
 #SBATCH --output=ace_train_%j.out
 #SBATCH --error=ace_train_%j.err
 
