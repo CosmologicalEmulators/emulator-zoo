@@ -17,7 +17,10 @@ arguments = parse_args(settings)
 manager = SlurmManager(; launch_timeout=300.0)
 addprocs(
     manager;
-    exeflags="--project=$(Base.active_project()) --startup-file=no",
+    # SlurmClusterManager propagates Base.active_project() to workers through
+    # JULIA_PROJECT. Keep startup-file disabled without passing a space-
+    # separated string as one malformed --project argument.
+    exeflags=`--startup-file=no`,
 )
 
 const GENERATION_FILE = joinpath(@__DIR__, "generation.jl")
