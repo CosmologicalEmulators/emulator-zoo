@@ -34,7 +34,7 @@ PYTHON=$(julia --project=. --startup-file=no -e \
 ```
 
 The cosmological design uses `Mν ∈ [0, 1]` eV. The other bounds are
-`z ∈ [0.285, 1.9]`, `ln10As ∈ [2, 3.5]`, `ns ∈ [0.8, 1.1]`,
+`z ∈ [0.285, 1.9]`, `ln10As ∈ [2, 3.75]`, `ns ∈ [0.8, 1.1]`,
 `H0 ∈ [50, 90]`, `ombh2 ∈ [0.02, 0.025]`, `omch2 ∈ [0.08, 0.18]`,
 `w0 ∈ [-3, 0.5]`, and `wa ∈ [-3, 2]`, with `w0 + wa < 0`.
 
