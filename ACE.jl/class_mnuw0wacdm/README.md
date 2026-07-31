@@ -74,7 +74,7 @@ sbatch --account=rrg-wperciva --export=ALL,BASIS=sigma8 narval_train.sbatch
 ```
 
 The default schedule is 40 sessions at each of 10 learning rates, with 4,000
-steps per session and batch size 1,024. Override these through `sbatch` exports,
+steps per session and batch size 256. Override these through `sbatch` exports,
 for example `--export=ALL,BASIS=ln10As,SESSIONS_PER_RATE=1,STEPS_PER_SESSION=100`
 for a short training check.
 

@@ -16,7 +16,7 @@ settings = ArgParseSettings()
     "--initialization-seed"; arg_type=Int; default=20260762
     "--steps-per-session"; arg_type=Int; default=4000
     "--sessions-per-rate"; arg_type=Int; default=40
-    "--batch-size"; arg_type=Int; default=1024
+    "--batch-size"; arg_type=Int; default=256
 end
 arguments = parse_args(settings)
 basis = arguments["basis"]
