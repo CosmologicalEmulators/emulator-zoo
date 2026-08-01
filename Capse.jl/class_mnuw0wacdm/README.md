@@ -46,3 +46,55 @@ sbatch --account=rrg-wperciva \
 
 The training array creates four jobs, one for each of `TT`, `TE`, `EE`, and
 `PP`, under `artifacts/capse_candidates_200000/{TT,TE,EE,PP}/`.
+
+## Local independent validation workflow
+
+Create the training and independent validation datasets separately:
+
+```bash
+julia --project=. data_generation_local.jl \
+    --samples 1000 --processes 8 --output data/local_1000
+
+julia --project=. data_generation_local.jl \
+    --samples 200 --processes 8 --output data/validation_200
+```
+
+Train all four spectra on the 1000-sample dataset:
+
+```bash
+julia --project=. train_local_all.jl \
+    --dataset data/local_1000/dataset.h5 \
+    --output artifacts/local_1000 \
+    --steps-per-session 1000 \
+    --sessions-per-rate 10 \
+    --batch-size 512
+```
+
+Evaluate the full independent 200-sample dataset. This uses no training
+split and writes the 64th, 95th, and 99th percentile absolute relative
+residuals without making plots:
+
+```bash
+julia --project=. validate.jl \
+    --dataset data/validation_200/dataset.h5 \
+    --artifacts artifacts/local_1000 \
+    --output validation/local_1000_on_validation_200
+```
+
+The resulting arrays are written to
+`validation/local_1000_on_validation_200/{TT,TE,EE,PP}/residuals_percentiles.npy`.
+
+For a single spectrum and its plot:
+
+```bash
+julia --project=. validate.jl \
+    --dataset data/validation_200/dataset.h5 \
+    --artifacts artifacts/local_1000 \
+    --spectrum TT \
+    --output validation/local_1000_on_validation_200
+
+julia --project=. plot_validation.jl \
+    --spectrum TT \
+    --residuals validation/local_1000_on_validation_200/TT/residuals_percentiles.npy \
+    --output validation/local_1000_on_validation_200/TT/residuals.png
+```

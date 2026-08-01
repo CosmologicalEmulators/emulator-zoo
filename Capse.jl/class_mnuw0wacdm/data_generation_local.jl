@@ -41,11 +41,15 @@ dataset_file = EmulatorsTrainer.compute_dataset_hdf5(
     compute_class_observables;
     mode=(n_processes > 0 ? :distributed : :serial),
     force=a["force"],
+    skip_errors=true,
 )
 
+dataset = EmulatorsTrainer.load_hdf5_dataset(dataset_file)
 metadata = Dict(
     "created_at" => string(now()),
     "requested_samples" => n,
+    "successful_samples" => size(dataset.parameters, 1),
+    "failed_samples" => n - size(dataset.parameters, 1),
     "mode" => (n_processes > 0 ? "distributed" : "serial"),
     "processes" => nworkers(),
     "dataset_file" => dataset_file,
