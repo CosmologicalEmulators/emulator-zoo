@@ -104,6 +104,8 @@ function main()
         ),
     )
     network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
+    output_directory = joinpath(abspath(arguments["path-output"]), string(multipole), component)
+    mkpath(output_directory)
     config = SimpleChainsTrainingConfig(
         learning_rates=[1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7],
         sessions_per_rate=arguments["sessions-per-rate"],
@@ -114,10 +116,12 @@ function main()
         "steps=$(progress.total_steps) train=$(progress.training_loss) " *
         "validation=$(progress.validation_loss) best=$(progress.best_validation_loss)",
     )
-    result = train_simplechains(network, x_train, y_train, x_validation, y_validation; config, callback)
-
-    output_directory = joinpath(abspath(arguments["path-output"]), string(multipole), component)
-    mkpath(output_directory)
+    result = train_simplechains(
+        network, x_train, y_train, x_validation, y_validation;
+        config, callback,
+        checkpoint_callback=(parameters, progress) ->
+            save_training_checkpoint(output_directory, parameters, progress),
+    )
     npzwrite(joinpath(output_directory, "k.npy"), k)
     npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
     npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)

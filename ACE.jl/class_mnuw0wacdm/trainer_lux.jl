@@ -153,6 +153,8 @@ result = train_lux(
     ad_backend=training_ad_backend,
     device=training_device,
     callback,
+    checkpoint_callback=(parameters, states, progress) ->
+        save_training_checkpoint(output_directory, parameters, progress; flatten=true),
 )
 training_seconds = time() - training_start
 

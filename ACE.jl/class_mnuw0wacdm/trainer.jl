@@ -99,12 +99,8 @@ open(joinpath(output_directory, "training_metadata.json"), "w") do stream
         "architecture" => network_dictionary,
     ))
 end
-weights_path = joinpath(output_directory, "weights.npy")
-checkpoint_callback = parameters -> begin
-    temporary_path = weights_path * ".tmp"
-    npzwrite(temporary_path, parameters)
-    mv(temporary_path, weights_path; force=true)
-end
+checkpoint_callback = (parameters, progress) ->
+    save_training_checkpoint(output_directory, parameters, progress)
 config = SimpleChainsTrainingConfig(
     learning_rates=[1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7],
     sessions_per_rate=arguments["sessions-per-rate"],
@@ -120,7 +116,7 @@ result = train_simplechains(
     network, x_train, y_train, x_validation, y_validation;
     config,
     callback,
-    checkpoint_callback=(parameters, _) -> checkpoint_callback(parameters),
+    checkpoint_callback,
 )
 
 save_training_result(output_directory, result; metadata=Dict(

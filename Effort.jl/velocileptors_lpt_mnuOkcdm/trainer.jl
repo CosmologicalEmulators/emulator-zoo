@@ -50,7 +50,9 @@ function main()
     network=AbstractCosmologicalEmulators._get_nn_simplechains(nn)
     config=SimpleChainsTrainingConfig(learning_rates=[1e-4,7e-5,5e-5,2e-5,1e-5,7e-6,5e-6,2e-6,1e-6,7e-7],sessions_per_rate=a["sessions-per-rate"],steps_per_session=a["steps-per-session"],batch_size=a["batch-size"],initialization_seed=20260743)
     cb=p->(println("steps=$(p.total_steps) validation=$(p.validation_loss)");flush(stdout))
-    result=train_simplechains(network,xt,yt,xv,yv;config,callback=cb)
+    result=train_simplechains(network,xt,yt,xv,yv;config,callback=cb,
+        checkpoint_callback=(parameters, progress) ->
+            save_training_checkpoint(out, parameters, progress))
     npzwrite(joinpath(out,"inminmax.npy"),inmm);npzwrite(joinpath(out,"outminmax.npy"),outmm)
     npzwrite(joinpath(out,"k.npy"),vec(dataset.observables[:kv][1,:]));npzwrite(joinpath(out,"train_indices.npy"),ti.-1);npzwrite(joinpath(out,"validation_indices.npy"),vi.-1)
     open(joinpath(out,"nn_setup.json"),"w") do io;JSON3.write(io,nn);end

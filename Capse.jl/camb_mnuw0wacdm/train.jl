@@ -143,7 +143,10 @@ function main()
         flush(stdout)
     end
     result = train_simplechains(
-        network, x_train, y_train, x_validation, y_validation; config, callback,
+        network, x_train, y_train, x_validation, y_validation;
+        config, callback,
+        checkpoint_callback=(parameters, progress) ->
+            save_training_checkpoint(output_directory, parameters, progress),
     )
 
     mkpath(output_directory)
