@@ -113,3 +113,28 @@ julia --project=. trainer.jl --basis ln10As \
 julia --project=. trainer.jl --basis sigma8 \
     -i data/ace_1000/dataset.h5 -o artifacts/ace_1000
 ```
+
+## Independent validation
+
+`validate.jl` evaluates the entire supplied HDF5 dataset. It deliberately
+does not use `validation_indices.npy`; the dataset is treated as independent
+of training. It writes the 64th, 95th, and 99th percentile absolute relative
+residuals for each of the seven ACE outputs, without making plots.
+
+```bash
+julia --project=. validate.jl \
+    --dataset data/local_500/dataset.h5 \
+    --artifact artifacts/local_500_lux/ln10As \
+    --basis ln10As \
+    --output validation/local_500_lux/ln10As
+
+julia --project=. validate.jl \
+    --dataset data/local_500/dataset.h5 \
+    --artifact artifacts/local_500_lux/sigma8 \
+    --basis sigma8 \
+    --output validation/local_500_lux/sigma8
+```
+
+Each result is written to `residuals_percentiles.npy` with shape `(3, 7)`.
+The output order is `sigma8`, `sigma8_z`, `r_drag`, `H_z`, `r_z`, `D_z`,
+`f_z`.
