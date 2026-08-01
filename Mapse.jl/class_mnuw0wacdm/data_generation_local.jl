@@ -34,11 +34,15 @@ dataset_file = compute_dataset_hdf5(
     mode=(n_processes > 0 ? :distributed : :serial),
     force=arguments["force"],
     static_arrays=(k=MapseClassMnuW0WaGeneration.K_GRID,),
+    skip_errors=true,
 )
+dataset = load_hdf5_dataset(dataset_file)
 open(joinpath(output_directory, "generation_metadata.json"), "w") do stream
     JSON3.write(stream, Dict(
         "created_at" => string(now()),
         "requested_samples" => arguments["samples"],
+        "successful_samples" => size(dataset.parameters, 1),
+        "failed_samples" => arguments["samples"] - size(dataset.parameters, 1),
         "processes" => nworkers(),
         "seed" => arguments["seed"],
         "dataset_file" => dataset_file,

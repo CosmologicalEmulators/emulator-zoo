@@ -11,4 +11,4 @@ Mapse = "8a74af7f-8333-416a-8f03-989ffaa4680e"
 NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-
+SlurmClusterManager = "c82cd089-7bf7-41d7-976b-6b5d413cbe0a"
