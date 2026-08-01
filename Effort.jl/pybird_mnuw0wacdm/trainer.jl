@@ -106,6 +106,17 @@ function main()
     network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
     output_directory = joinpath(abspath(arguments["path-output"]), string(multipole), component)
     mkpath(output_directory)
+    npzwrite(joinpath(output_directory, "k.npy"), k)
+    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
+    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
+    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
+    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
+    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
+        JSON3.write(stream, network_dictionary)
+    end
+    template = component == "loop" ? "postprocessing_loop" : "postprocessing"
+    cp(joinpath(@__DIR__, "$template.jl"), joinpath(output_directory, "postprocessing.jl"); force=true)
+    cp(joinpath(@__DIR__, "$template.py"), joinpath(output_directory, "postprocessing.py"); force=true)
     config = SimpleChainsTrainingConfig(
         learning_rates=[1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7],
         sessions_per_rate=arguments["sessions-per-rate"],
@@ -122,17 +133,6 @@ function main()
         checkpoint_callback=(parameters, progress) ->
             save_training_checkpoint(output_directory, parameters, progress),
     )
-    npzwrite(joinpath(output_directory, "k.npy"), k)
-    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
-    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
-    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
-    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
-        JSON3.write(stream, network_dictionary)
-    end
-    template = component == "loop" ? "postprocessing_loop" : "postprocessing"
-    cp(joinpath(@__DIR__, "$template.jl"), joinpath(output_directory, "postprocessing.jl"); force=true)
-    cp(joinpath(@__DIR__, "$template.py"), joinpath(output_directory, "postprocessing.py"); force=true)
     save_training_result(output_directory, result; metadata=Dict(
         "component" => component, "multipole" => multipole,
         "preprocessing" => arguments["preprocessing"], "n_loaded" => n_samples,

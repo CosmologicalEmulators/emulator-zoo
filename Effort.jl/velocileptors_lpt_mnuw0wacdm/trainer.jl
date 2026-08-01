@@ -148,25 +148,6 @@ function main()
         ),
     )
     network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
-    config = SimpleChainsTrainingConfig(
-        learning_rates=[1.0e-4, 7.0e-5, 5.0e-5, 2.0e-5, 1.0e-5,
-            7.0e-6, 5.0e-6, 2.0e-6, 1.0e-6, 7.0e-7],
-        sessions_per_rate=arguments["sessions-per-rate"],
-        steps_per_session=arguments["steps-per-session"],
-        batch_size=arguments["batch-size"],
-        initialization_seed=arguments["initialization-seed"],
-    )
-    callback = progress -> begin
-        println(
-            "steps=$(progress.total_steps) train=$(progress.training_loss) " *
-            "validation=$(progress.validation_loss) best=$(progress.best_validation_loss)",
-        )
-        flush(stdout)
-    end
-    result = train_simplechains(
-        network, x_train, y_train, x_validation, y_validation; config, callback,
-    )
-
     npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
     npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
     npzwrite(joinpath(output_directory, "k.npy"), vec(dataset.observables[:kv][1, :]))
@@ -184,6 +165,27 @@ function main()
     end
     copy_artifact_template("stochmodel_$(multipole).py", "stochmodel.py", output_directory)
     copy_artifact_template("stochmodel_$(multipole).jl", "stochmodel.jl", output_directory)
+    config = SimpleChainsTrainingConfig(
+        learning_rates=[1.0e-4, 7.0e-5, 5.0e-5, 2.0e-5, 1.0e-5,
+            7.0e-6, 5.0e-6, 2.0e-6, 1.0e-6, 7.0e-7],
+        sessions_per_rate=arguments["sessions-per-rate"],
+        steps_per_session=arguments["steps-per-session"],
+        batch_size=arguments["batch-size"],
+        initialization_seed=arguments["initialization-seed"],
+    )
+    callback = progress -> begin
+        println(
+            "steps=$(progress.total_steps) train=$(progress.training_loss) " *
+            "validation=$(progress.validation_loss) best=$(progress.best_validation_loss)",
+        )
+        flush(stdout)
+    end
+    result = train_simplechains(
+        network, x_train, y_train, x_validation, y_validation;
+        config, callback,
+        checkpoint_callback=(parameters, progress) ->
+            save_training_checkpoint(output_directory, parameters, progress),
+    )
     metadata = Dict{String,Any}(
         "component" => component,
         "multipole" => multipole,

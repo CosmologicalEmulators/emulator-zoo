@@ -123,6 +123,18 @@ function main()
         ),
     )
     network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
+    mkpath(output_directory)
+    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
+    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
+    grid_name = spectrum == "PP" ? :ell_192 : :ell_256
+    haskey(dataset.axes, grid_name) || error("Missing axis $grid_name in HDF5 dataset")
+    npzwrite(joinpath(output_directory, "l.npy"), dataset.axes[grid_name])
+    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
+    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
+    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
+        JSON3.write(stream, network_dictionary)
+    end
+    write_postprocessing(output_directory, spectrum, log_target)
     steps_per_session = parse(Int, get(ENV, "CAPSE_STEPS_PER_SESSION", "2000"))
     sessions_per_rate = parse(Int, get(ENV, "CAPSE_SESSIONS_PER_RATE", "10"))
     batch_size = parse(Int, get(ENV, "CAPSE_BATCH_SIZE", "256"))
@@ -149,18 +161,6 @@ function main()
             save_training_checkpoint(output_directory, parameters, progress),
     )
 
-    mkpath(output_directory)
-    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
-    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    grid_name = spectrum == "PP" ? :ell_192 : :ell_256
-    haskey(dataset.axes, grid_name) || error("Missing axis $grid_name in HDF5 dataset")
-    npzwrite(joinpath(output_directory, "l.npy"), dataset.axes[grid_name])
-    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
-    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
-    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
-        JSON3.write(stream, network_dictionary)
-    end
-    write_postprocessing(output_directory, spectrum, log_target)
     metadata = Dict{String,Any}(
         "spectrum" => spectrum,
         "dataset_directory" => data_directory,

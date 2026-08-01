@@ -148,6 +148,23 @@ function main()
         ),
     )
     network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
+    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
+    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
+    npzwrite(joinpath(output_directory, "k.npy"), vec(dataset.observables[:kv][1, :]))
+    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
+    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
+    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
+        JSON3.write(stream, network_dictionary)
+    end
+    if component == "loop"
+        copy_artifact_template("postprocessing_loop.py", "postprocessing.py", output_directory)
+        copy_artifact_template("postprocessing_loop.jl", "postprocessing.jl", output_directory)
+    else
+        copy_artifact_template("postprocessing.py", "postprocessing.py", output_directory)
+        copy_artifact_template("postprocessing.jl", "postprocessing.jl", output_directory)
+    end
+    copy_artifact_template("stochmodel_$(multipole).py", "stochmodel.py", output_directory)
+    copy_artifact_template("stochmodel_$(multipole).jl", "stochmodel.jl", output_directory)
     config = SimpleChainsTrainingConfig(
         learning_rates=[1.0e-4, 7.0e-5, 5.0e-5, 2.0e-5, 1.0e-5,
             7.0e-6, 5.0e-6, 2.0e-6, 1.0e-6, 7.0e-7],
@@ -170,23 +187,6 @@ function main()
         config, callback, checkpoint_callback,
     )
 
-    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
-    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    npzwrite(joinpath(output_directory, "k.npy"), vec(dataset.observables[:kv][1, :]))
-    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
-    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
-    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
-        JSON3.write(stream, network_dictionary)
-    end
-    if component == "loop"
-        copy_artifact_template("postprocessing_loop.py", "postprocessing.py", output_directory)
-        copy_artifact_template("postprocessing_loop.jl", "postprocessing.jl", output_directory)
-    else
-        copy_artifact_template("postprocessing.py", "postprocessing.py", output_directory)
-        copy_artifact_template("postprocessing.jl", "postprocessing.jl", output_directory)
-    end
-    copy_artifact_template("stochmodel_$(multipole).py", "stochmodel.py", output_directory)
-    copy_artifact_template("stochmodel_$(multipole).jl", "stochmodel.jl", output_directory)
     metadata = Dict{String,Any}(
         "component" => component,
         "multipole" => multipole,
