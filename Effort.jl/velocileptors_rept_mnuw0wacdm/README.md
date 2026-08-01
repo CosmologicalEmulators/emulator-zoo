@@ -105,6 +105,26 @@ The artifact is written to:
 artifacts/rept_1000/0/loop/
 ```
 
+To train all nine component/multipole emulators on Slurm, submit the array
+launcher. It creates one job for each element of
+`{0, 2, 4} × {11, loop, ct}`:
+
+```bash
+export PROJECT_DIR=/home/mbonici/test_emu/emulator-zoo/Effort.jl/velocileptors_rept_mnuw0wacdm
+export DATASET=/home/mbonici/test_emu/emulator-zoo/Effort.jl/velocileptors_rept_mnuw0wacdm/data/rept_candidates_500000/dataset.h5
+export OUTPUT=/home/mbonici/test_emu/emulator-zoo/Effort.jl/velocileptors_rept_mnuw0wacdm/artifacts/rept_candidates_500000
+
+cd "$PROJECT_DIR"
+sbatch --account=rrg-wperciva \
+    --export=ALL,PROJECT_DIR="$PROJECT_DIR",DATASET="$DATASET",OUTPUT="$OUTPUT",STEPS_PER_SESSION=2000,SESSIONS_PER_RATE=10,BATCH_SIZE=256 \
+    rept_train.sbatch
+```
+
+The array requests one node, 32 CPUs, 32 GB, and 12 hours per training job.
+Override `STEPS_PER_SESSION` and `SESSIONS_PER_RATE` in the `--export` list
+for a shorter pilot. Artifacts are written below
+`artifacts/rept_candidates_500000/{0,2,4}/{11,loop,ct}/`.
+
 The other supported components are `11` and `ct`; the supported multipoles
 are `0`, `2`, and `4`. The trainer preserves the existing preprocessing
 convention: `11` and `ct` are scaled by `A_s D²`, while `loop` is scaled by
