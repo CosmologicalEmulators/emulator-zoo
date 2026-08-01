@@ -1,207 +1,141 @@
-using EmulatorsTrainer
-using DataFrames
-using NPZ
-using JSON
 using AbstractCosmologicalEmulators
-using SimpleChains
 using ArgParse
-using EmulatorsTrainer
+using DataFrames
 using Effort
-using DelimitedFiles
+using EmulatorsTrainer
+using JSON
+using JSON3
+using NPZ
+using SimpleChains
+
+const INPUT_COLUMNS = [:z, :ln10A_s, :ns, :H0, :omega_b, :omega_cdm, :Mν, :w0, :wa]
 
 function parse_commandline()
-    s = ArgParseSettings()
+    settings = ArgParseSettings()
+    @add_arg_table settings begin
+        "--component"; default="11"
+        "--multipole", "-l"; arg_type=Int; default=0
+        "--path-input", "-i"; required=true
+        "--path-output", "-o"; required=true
+        "--preprocessing", "-p"; default="AsDzprec"
+        "--split-seed"; arg_type=Int; default=20260764
+        "--initialization-seed"; arg_type=Int; default=20260765
+        "--steps-per-session"; arg_type=Int; default=1000
+        "--sessions-per-rate"; arg_type=Int; default=10
+        "--batch-size"; arg_type=Int; default=512
+    end
+    return parse_args(settings)
+end
 
-    @add_arg_table s begin
-        "--component"
-        help = "the component we are training. Either 11, loop, or ct"
-        default = "11"
-        "--multipole", "-l"
-        help = "the multipole we are training. Either 0, 2, or 4"
-        arg_type = Int
-        default = 0
-        "--path_input", "-i"
-        help = "input folder"
-        required = true
-        "--path_output", "-o"
-        help = "output folder"
-        required = true
-        "--preprocessing", "-p"
-        help = "How to preprocess data"
-        arg_type = String
-        required = true
+function component_columns(component)
+    component == "11" && return (:P11l, 1:3)
+    component == "loop" && return (:Ploopl, 1:12)
+    component == "ct" && return (:Pctl, 1:6)
+    throw(ArgumentError("component must be one of: 11, loop, ct"))
+end
+
+function preprocessing_factor(parameters, preprocessing, component)
+    z = parameters["z"]
+    h = parameters["H0"] / 100
+    Ωcb0 = (parameters["ombh2"] + parameters["omch2"]) / h^2
+    As = exp(parameters["ln10As"]) * 1.0e-10
+    cosmology = Effort.w0waCDMCosmology(
+        ln10Aₛ=3.0, nₛ=0.96, h=h, ωb=parameters["ombh2"], ωc=parameters["omch2"],
+        mν=parameters["Mν"], w0=parameters["w0"], wa=parameters["wa"],
+    )
+    D = Effort.D_z(z, cosmology)
+    base = preprocessing == "noprec" ? 1.0 :
+        preprocessing == "Asprec" ? As :
+        preprocessing == "Dzprec" ? D^2 :
+        preprocessing == "AsDzprec" ? As * D^2 :
+        throw(ArgumentError("Unknown preprocessing: $preprocessing"))
+    return component == "loop" ? base^2 : base
+end
+
+function main()
+    arguments = parse_commandline()
+    component = arguments["component"]
+    multipole = arguments["multipole"]
+    multipole in (0, 2, 4) || throw(ArgumentError("multipole must be 0, 2, or 4"))
+    observable_name, columns = component_columns(component)
+    ell_index = multipole ÷ 2 + 1
+    dataset = load_hdf5_dataset(abspath(arguments["path-input"]))
+    all(dataset.valid) || error("HDF5 dataset contains invalid samples")
+    haskey(dataset.observables, observable_name) || error("Missing $observable_name observable")
+    observable = dataset.observables[observable_name]
+    size(observable, 2) >= ell_index || error("Invalid multipole index")
+    k = dataset.axes[:kd]
+    n_samples = size(dataset.parameters, 1)
+
+    frame = DataFrame(z=Float64[], ln10A_s=Float64[], ns=Float64[], H0=Float64[],
+        omega_b=Float64[], omega_cdm=Float64[], Mν=Float64[], w0=Float64[], wa=Float64[],
+        observable=Vector{Float64}[])
+    for sample_index in 1:n_samples
+        parameters = Dict(dataset.parameter_names[j] => dataset.parameters[sample_index, j]
+            for j in axes(dataset.parameters, 2))
+        slice = Array(observable[sample_index, ell_index, columns, :])
+        selected = vec(slice) ./ preprocessing_factor(
+            parameters, arguments["preprocessing"], component,
+        )
+        push!(frame, (
+            parameters["z"], parameters["ln10As"], parameters["ns"], parameters["H0"],
+            parameters["ombh2"], parameters["omch2"], parameters["Mν"],
+            parameters["w0"], parameters["wa"], selected,
+        ))
     end
 
-    return parse_args(s)
-end
+    input_limits = get_minmax_in(frame, INPUT_COLUMNS)
+    _, output_array = extract_input_output_df(frame; input_columns=INPUT_COLUMNS)
+    output_limits = get_minmax_out(output_array)
+    maximin_df!(frame, input_limits, output_limits; input_columns=INPUT_COLUMNS)
+    x_train, y_train, x_validation, y_validation, train_indices, validation_indices = getdata(
+        frame; test_fraction=0.2, seed=arguments["split-seed"],
+        input_columns=INPUT_COLUMNS, return_indices=true,
+    )
+    network_dictionary = Dict{String,Any}(
+        "n_input_features" => length(INPUT_COLUMNS),
+        "n_output_features" => size(y_train, 1),
+        "n_hidden_layers" => 5,
+        "layers" => Dict("layer_$i" => Dict("n_neurons" => 64, "activation_function" => "tanh") for i in 1:5),
+        "emulator_description" => Dict(
+            "source" => "CLASS + PyBird",
+            "cosmology" => "Mnu-w0-waCDM", "component" => component,
+            "multipole" => multipole, "preprocessing" => arguments["preprocessing"],
+        ),
+    )
+    network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
+    config = SimpleChainsTrainingConfig(
+        learning_rates=[1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7],
+        sessions_per_rate=arguments["sessions-per-rate"],
+        steps_per_session=arguments["steps-per-session"],
+        batch_size=arguments["batch-size"], initialization_seed=arguments["initialization-seed"],
+    )
+    callback = progress -> println(
+        "steps=$(progress.total_steps) train=$(progress.training_loss) " *
+        "validation=$(progress.validation_loss) best=$(progress.best_validation_loss)",
+    )
+    result = train_simplechains(network, x_train, y_train, x_validation, y_validation; config, callback)
 
-parsed_args = parse_commandline()
-global Componentkind = parsed_args["component"]
-ℓ = parsed_args["multipole"]
-PℓDirectory = parsed_args["path_input"]
-OutDirectory = parsed_args["path_output"]
-Preprocessing = parsed_args["preprocessing"]
-
-@info Componentkind
-@info ℓ
-@info PℓDirectory
-@info OutDirectory
-@info Preprocessing
-
-D_ODE(z, Ωcb0, h, Mν, w0, wa) = Effort._D_z(z, Ωcb0, h; mν=Mν, w0=w0, wa=wa)
-
-global nk = 74
-
-if Componentkind == "11"
-    nk_factor = 3
-elseif Componentkind == "loop"
-    nk_factor = 12
-elseif Componentkind == "ct"
-    nk_factor = 6
-else
-    @error "Wrong component!"
-end
-
-if ℓ == 0
-    ℓidx = 1
-elseif ℓ == 2
-    ℓidx = 2
-elseif ℓ == 4
-    ℓidx = 3
-else
-    @error "Wrong multipole"
-end
-
-if Preprocessing == "noprec"
-    preprocess(z, As, Ωcb0, h, Mν, w0, wa) = 1
-elseif Preprocessing == "Asprec"
-    preprocess(z, As, Ωcb0, h, Mν, w0, wa) = As
-elseif Preprocessing == "Dzprec"
-    preprocess(z, As, Ωcb0, h, Mν, w0, wa) = D_ODE(z, Ωcb0, h, Mν, w0, wa)^2
-elseif Preprocessing == "AsDzprec"
-    preprocess(z, As, Ωcb0, h, Mν, w0, wa) = As * D_ODE(z, Ωcb0, h, Mν, w0, wa)^2
-else
-    @error "Wrong preprocessing"
-end
-
-function reshape_Pk(Pk, factor)
-    if Componentkind == "11"
-        result = vec((Array(Pk)[ℓidx, :, :])') ./ factor
-    elseif Componentkind == "loop"
-        result = vec((Array(Pk)[ℓidx, :, :])') ./ factor^2
-    elseif Componentkind == "ct"
-        result = vec((Array(Pk)[ℓidx, :, :])') ./ factor
-    else
-        @error "Wrong component!"
+    output_directory = joinpath(abspath(arguments["path-output"]), string(multipole), component)
+    mkpath(output_directory)
+    npzwrite(joinpath(output_directory, "k.npy"), k)
+    npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
+    npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
+    npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
+    npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
+    open(joinpath(output_directory, "nn_setup.json"), "w") do stream
+        JSON3.write(stream, network_dictionary)
     end
-    return result
+    template = component == "loop" ? "postprocessing_loop" : "postprocessing"
+    cp(joinpath(@__DIR__, "$template.jl"), joinpath(output_directory, "postprocessing.jl"); force=true)
+    cp(joinpath(@__DIR__, "$template.py"), joinpath(output_directory, "postprocessing.py"); force=true)
+    save_training_result(output_directory, result; metadata=Dict(
+        "component" => component, "multipole" => multipole,
+        "preprocessing" => arguments["preprocessing"], "n_loaded" => n_samples,
+        "n_train" => length(train_indices), "n_validation" => length(validation_indices),
+        "split_seed" => arguments["split-seed"],
+    ))
+    println("Best validation loss: $(result.best_validation_loss)")
 end
 
-function get_observable_tuple(cosmo_pars, Pk)
-    z = cosmo_pars["z"]
-    ombh2 = cosmo_pars["ombh2"]
-    omch2 = cosmo_pars["omch2"]
-    Mν = cosmo_pars["Mν"]
-    h = cosmo_pars["H0"] / 100
-    Ωcb0 = (ombh2 + omch2) / h^2
-    As = exp(cosmo_pars["ln10As"]) * 1e-10
-    w0 = cosmo_pars["w0"]
-    wa = cosmo_pars["wa"]
-
-    factor = preprocess(z, As, Ωcb0, h, Mν, w0, wa)
-
-    return (cosmo_pars["z"], cosmo_pars["ln10As"], cosmo_pars["ns"], cosmo_pars["H0"],
-        cosmo_pars["ombh2"], cosmo_pars["omch2"], cosmo_pars["Mν"], cosmo_pars["w0"], cosmo_pars["wa"], reshape_Pk(Pk, factor))
-end
-
-n_input_features = 9
-n_output_features = nk * nk_factor
-observable_file = "/P" * Componentkind * "l.npy"
-param_file = "/effort_dict.json"
-add_observable!(df, location) = EmulatorsTrainer.add_observable_df!(df, location, param_file, observable_file, get_observable_tuple)
-
-df = DataFrame(z=Float64[], ln10A_s=Float64[], ns=Float64[], H0=Float64[], omega_b=Float64[], omega_cdm=Float64[], Mν=Float64[], w0=Float64[], wa=Float64[], observable=Array[])
-@time EmulatorsTrainer.load_df_directory!(df, PℓDirectory, add_observable!)
-
-array_pars_in = ["z", "ln10A_s", "ns", "H0", "omega_b", "omega_cdm", "Mν", "w0", "wa"]
-in_array, out_array = EmulatorsTrainer.extract_input_output_df(df)
-in_MinMax = EmulatorsTrainer.get_minmax_in(df, array_pars_in)
-out_MinMax = EmulatorsTrainer.get_minmax_out(out_array);
-
-folder_output = OutDirectory * "/" * string(ℓ) * "/" * string(Componentkind)
-npzwrite(folder_output * "/inminmax.npy", in_MinMax)
-npzwrite(folder_output * "/outminmax.npy", out_MinMax)
-
-EmulatorsTrainer.maximin_df!(df, in_MinMax, out_MinMax)
-
-println(minimum(df[!, "z"]), " , ", maximum(df[!, "z"]))
-println(minimum(df[!, "ln10A_s"]), " , ", maximum(df[!, "ln10A_s"]))
-println(minimum(df[!, "ns"]), " , ", maximum(df[!, "ns"]))
-println(minimum(df[!, "H0"]), " , ", maximum(df[!, "H0"]))
-println(minimum(df[!, "omega_b"]), " , ", maximum(df[!, "omega_b"]))
-println(minimum(df[!, "omega_cdm"]), " , ", maximum(df[!, "omega_cdm"]))
-println(minimum(df[!, "Mν"]), " , ", maximum(df[!, "Mν"]))
-println(minimum(df[!, "w0"]), " , ", maximum(df[!, "w0"]))
-println(minimum(df[!, "wa"]), " , ", maximum(df[!, "wa"]))
-println(minimum(minimum(df[!, "observable"])), " , ", maximum(maximum(df[!, "observable"])))
-
-NN_dict = JSON.parsefile("nn_setup.json")
-NN_dict["n_output_features"] = n_output_features
-NN_dict["n_input_features"] = n_input_features
-mlpd = AbstractCosmologicalEmulators._get_nn_simplechains(NN_dict);
-
-X, Y, Xtest, Ytest = EmulatorsTrainer.getdata(df);
-
-p = SimpleChains.init_params(mlpd)
-G = SimpleChains.alloc_threaded_grad(mlpd);
-
-mlpdloss = SimpleChains.add_loss(mlpd, SquaredLoss(Y))
-mlpdtest = SimpleChains.add_loss(mlpd, SquaredLoss(Ytest))
-
-k = readdlm("k.txt", ' ')
-dest = joinpath(folder_output, "k.npy")  # constructs the full destination path nicely
-npzwrite(dest, k)
-
-dest = joinpath(folder_output, "nn_setup.json")
-json_str = JSON.json(NN_dict)
-open(dest, "w") do file
-    write(file, json_str)
-end
-
-if Componentkind == "loop"
-    dest = joinpath(folder_output, "postprocessing.py")
-    run(`cp postprocessing_loop.py $dest`)
-    dest = joinpath(folder_output, "postprocessing.jl")
-    run(`cp postprocessing_loop.jl $dest`)
-else
-    dest = joinpath(folder_output, "postprocessing.py")
-    run(`cp postprocessing.py $dest`)
-    dest = joinpath(folder_output, "postprocessing.jl")
-    run(`cp postprocessing.jl $dest`)
-end
-
-report = let mtrain = mlpdloss, X = X, Xtest = Xtest, mtest = mlpdtest
-    p -> begin
-        let train = mlpdloss(X, p), test = mlpdtest(Xtest, p)
-            @info "Loss:" train test
-        end
-    end
-end;
-
-pippo_loss = mlpdtest(Xtest, p)
-println("Initial Loss: ", pippo_loss)
-lr_list = [1e-4, 7e-5, 5e-5, 2e-5, 1e-5, 7e-6, 5e-6, 2e-6, 1e-6, 7e-7, 5e-6, 2e-7]
-
-for lr in lr_list
-    for i in 1:20
-        @time SimpleChains.train_batched!(G, p, mlpdloss, X, SimpleChains.ADAM(lr), 2000
-            ; batchsize=512)
-        report(p)
-        test = mlpdtest(Xtest, p)
-        if pippo_loss > test
-            npzwrite(folder_output * "/weights.npy", p)
-            global pippo_loss = test
-            @info "Saving coefficients! Test loss is equal to :" test
-        end
-    end
-end
+main()
