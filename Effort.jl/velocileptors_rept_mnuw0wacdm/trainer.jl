@@ -1,9 +1,9 @@
 using AbstractCosmologicalEmulators
 using ArgParse
-using DataFrames
 using DelimitedFiles
 using Effort
 using EmulatorsTrainer
+using HDF5
 using JSON3
 using NPZ
 
@@ -80,6 +80,37 @@ function copy_artifact_template(source_name, destination_name, output_directory)
     cp(source, joinpath(output_directory, destination_name); force=true)
 end
 
+function load_rept_training_arrays(path, multipole, columns, component)
+    h5open(path, "r") do file
+        valid = Bool.(file["valid"][:])
+        all(valid) || error("HDF5 dataset contains invalid samples")
+        parameters_array = Array(file["parameters"][:, :])
+        parameter_names = String.(file["parameter_names"][:])
+        observable = Array(file["observables/pk_$(multipole)"][:, :, :])
+        k_grid = vec(Array(file["observables/kv"][1, :]))
+
+        input_indices = [
+            findfirst(==(String(name)), parameter_names)
+            for name in INPUT_COLUMNS
+        ]
+        all(!isnothing, input_indices) || error("REPT dataset is missing input parameters")
+        inputs = permutedims(parameters_array[:, Int.(input_indices)])
+
+        n_samples = size(parameters_array, 1)
+        n_output_features = length(columns) * size(observable, 2)
+        outputs = Matrix{Float64}(undef, n_output_features, n_samples)
+        for sample_index in 1:n_samples
+            parameters = Dict(
+                parameter_names[j] => parameters_array[sample_index, j]
+                for j in axes(parameters_array, 2)
+            )
+            selected = vec(observable[sample_index, :, columns])
+            outputs[:, sample_index] = selected ./ preprocessing_factor(parameters, component)
+        end
+        return inputs, outputs, parameter_names, k_grid, n_samples
+    end
+end
+
 function main()
     arguments = parse_commandline()
     component = arguments["component"]
@@ -90,45 +121,25 @@ function main()
     output_directory = joinpath(abspath(arguments["path-output"]), string(multipole), component)
     mkpath(output_directory)
 
-    dataset = EmulatorsTrainer.load_hdf5_dataset(input_directory)
-    parameters_array = dataset.parameters
-    parameter_names = dataset.parameter_names
-    observable_name = Symbol("pk_$(multipole)")
-    observable = get(dataset.observables, observable_name, nothing)
-    observable === nothing && error("Observable $observable_name is not present in $input_directory")
-    all(dataset.valid) || error("HDF5 dataset contains invalid samples")
+    inputs, outputs, parameter_names, k_grid, n_samples =
+        load_rept_training_arrays(input_directory, multipole, columns, component)
+    n_samples >= 2 || error("Too few valid samples to train")
 
-    frame = DataFrame(
-        sample_id=String[], z=Float64[], ln10As=Float64[], ns=Float64[],
-        H0=Float64[], ombh2=Float64[], omch2=Float64[], Mν=Float64[],
-        w0=Float64[], wa=Float64[], observable=Vector{Float64}[],
+    input_limits = hcat(minimum(inputs; dims=2), maximum(inputs; dims=2))
+    output_limits = EmulatorsTrainer.get_minmax_out(outputs)
+    input_widths = input_limits[:, 2] .- input_limits[:, 1]
+    output_widths = output_limits[:, 2] .- output_limits[:, 1]
+    any(iszero, input_widths) && error("Cannot normalize constant input features")
+    any(iszero, output_widths) && error("Cannot normalize constant output features")
+    inputs = (inputs .- input_limits[:, 1]) ./ input_widths
+    outputs = (outputs .- output_limits[:, 1]) ./ output_widths
+
+    validation_indices, train_indices = EmulatorsTrainer.split_indices(
+        n_samples, 0.2; seed=arguments["split-seed"],
     )
-    for sample_index in axes(parameters_array, 1)
-        parameters = Dict(parameter_names[j] => parameters_array[sample_index, j]
-            for j in axes(parameters_array, 2))
-        selected = vec(Array(observable[sample_index, :, :])[:, columns]) ./ preprocessing_factor(parameters, component)
-        push!(frame, (
-            sample_id="sample_$(lpad(sample_index, 6, '0'))",
-            z=Float64(parameters["z"]), ln10As=Float64(parameters["ln10As"]), ns=Float64(parameters["ns"]),
-            H0=Float64(parameters["H0"]), ombh2=Float64(parameters["ombh2"]), omch2=Float64(parameters["omch2"]),
-            Mν=Float64(parameters["Mν"]), w0=Float64(parameters["w0"]), wa=Float64(parameters["wa"]), observable=selected,
-        ))
-    end
-    load_report = (loaded=size(frame, 1), skipped=0)
-    load_report.loaded >= 2 || error("Too few valid samples to train")
-
-    input_limits = get_minmax_in(frame, INPUT_COLUMNS)
-    _, output_array = extract_input_output_df(frame; input_columns=INPUT_COLUMNS)
-    output_limits = get_minmax_out(output_array)
-    maximin_df!(frame, input_limits, output_limits; input_columns=INPUT_COLUMNS)
-    x_train, y_train, x_validation, y_validation, train_indices, validation_indices =
-        getdata(
-            frame;
-            test_fraction=0.2,
-            seed=arguments["split-seed"],
-            input_columns=INPUT_COLUMNS,
-            return_indices=true,
-        )
+    x_train, y_train = inputs[:, train_indices], outputs[:, train_indices]
+    x_validation, y_validation = inputs[:, validation_indices], outputs[:, validation_indices]
+    sample_ids = ["sample_$(lpad(index, 6, '0'))" for index in 1:n_samples]
 
     n_output_features = size(y_train, 1)
     network_dictionary = Dict{String,Any}(
@@ -150,7 +161,7 @@ function main()
     network = AbstractCosmologicalEmulators._get_nn_simplechains(network_dictionary)
     npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
     npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    npzwrite(joinpath(output_directory, "k.npy"), vec(dataset.observables[:kv][1, :]))
+    npzwrite(joinpath(output_directory, "k.npy"), k_grid)
     npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
     npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
     open(joinpath(output_directory, "nn_setup.json"), "w") do stream
@@ -190,13 +201,13 @@ function main()
     metadata = Dict{String,Any}(
         "component" => component,
         "multipole" => multipole,
-        "n_loaded" => load_report.loaded,
-        "n_skipped" => load_report.skipped,
+        "n_loaded" => n_samples,
+        "n_skipped" => 0,
         "n_train" => length(train_indices),
         "n_validation" => length(validation_indices),
         "input_columns" => string.(INPUT_COLUMNS),
-        "train_sample_ids" => frame.sample_id[train_indices],
-        "validation_sample_ids" => frame.sample_id[validation_indices],
+        "train_sample_ids" => sample_ids[train_indices],
+        "validation_sample_ids" => sample_ids[validation_indices],
     )
     save_training_result(output_directory, result; metadata)
     println("Best validation loss: $(result.best_validation_loss)")
