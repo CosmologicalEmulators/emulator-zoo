@@ -7,3 +7,7 @@ Pkg.develop([
     for package in ("EmulatorsTrainer.jl", "AbstractCosmologicalEmulators.jl", "Capse.jl")
 ])
 Pkg.instantiate()
+
+using PyCall
+python = PyCall.python
+run(`$python -m pip install camb scipy`)

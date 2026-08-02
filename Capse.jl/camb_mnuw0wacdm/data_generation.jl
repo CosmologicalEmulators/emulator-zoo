@@ -1,6 +1,4 @@
-ENV["JULIA_PYTHONCALL_EXE"] = get(ENV, "JULIA_PYTHONCALL_EXE", something(Sys.which("python"), "python"))
-
-using Dates, Distributed, EmulatorsTrainer, JSON3, PythonCall
+using Dates, Distributed, EmulatorsTrainer, JSON3, PyCall
 
 const GENERATION_FILE = joinpath(@__DIR__, "generation.jl")
 include(GENERATION_FILE)
@@ -44,7 +42,7 @@ if n_processes > 0
 end
 
 @everywhere begin
-    using EmulatorsTrainer, PythonCall
+    using EmulatorsTrainer, PyCall
     include($GENERATION_FILE)
     using .CapseCambMnuW0WaGeneration
     const CAMB_BACKEND = CapseCambMnuW0WaGeneration.initialize_backend()

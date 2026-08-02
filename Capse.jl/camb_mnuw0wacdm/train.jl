@@ -6,7 +6,7 @@ using EmulatorsTrainer
 using HDF5
 using JSON3
 using NPZ
-using PythonCall
+using PyCall
 using SimpleChains
 
 const INPUT_COLUMNS = [
@@ -45,7 +45,7 @@ end
 
 function interpolate_dense_chunk(dense, ell_dense, nodes, cubic_spline)
     spline = cubic_spline(ell_dense, dense; axis=1)
-    return pyconvert(Matrix{Float64}, spline(nodes))
+    return convert(Matrix{Float64}, spline(nodes))
 end
 
 function load_camb_training_frame(path, spectrum, node_count, log_target)

@@ -1,7 +1,7 @@
 module CapseCambMnuW0WaGeneration
 
 using EmulatorsTrainer
-using PythonCall
+using PyCall
 using Random
 
 export PARAMETER_NAMES, LOWER_BOUNDS, UPPER_BOUNDS, DESIGN_SEED
@@ -27,14 +27,17 @@ end
 
 function initialize_backend()
     sys = pyimport("sys")
-    sys.path.insert(0, CAMB_DIRECTORY)
+    builtins = pyimport("builtins")
+    python_path = pycall(builtins.getattr, PyObject, sys, "path")
+    insert = pycall(builtins.getattr, PyObject, python_path, "insert")
+    pycall(insert, PyAny, 0, CAMB_DIRECTORY)
     return pyimport("camb_worker")
 end
 
 function compute_observables(parameters, backend)
     result = backend.compute_spectra(parameters, 9000)
     values = Tuple(
-        pyconvert(Vector{Float64}, result[name])
+        convert(Vector{Float64}, result[name])
         for name in ("TT_dense", "TE_dense", "EE_dense", "PP_dense")
     )
     arrays = (
@@ -50,8 +53,8 @@ end
 function static_axes(backend)
     return (
         ell_dense=collect(2.0:9000.0),
-        ell_256=pyconvert(Vector{Float64}, backend.lobatto_nodes(256, 2.0, 9000.0)),
-        ell_192=pyconvert(Vector{Float64}, backend.lobatto_nodes(192, 2.0, 9000.0)),
+        ell_256=convert(Vector{Float64}, backend.lobatto_nodes(256, 2.0, 9000.0)),
+        ell_192=convert(Vector{Float64}, backend.lobatto_nodes(192, 2.0, 9000.0)),
     )
 end
 

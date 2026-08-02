@@ -1,6 +1,6 @@
 ENV["JULIA_PYTHONCALL_EXE"] = get(ENV, "JULIA_PYTHONCALL_EXE", something(Sys.which("python"), "python"))
 
-using Dates, Distributed, EmulatorsTrainer, JSON3, PythonCall, SlurmClusterManager
+using Dates, Distributed, EmulatorsTrainer, JSON3, PyCall, SlurmClusterManager
 
 const GENERATION_FILE = joinpath(@__DIR__, "generation.jl")
 include(GENERATION_FILE)
@@ -24,7 +24,7 @@ manager = SlurmManager(; launch_timeout=600.0)
 addprocs(manager; exeflags=`--startup-file=no`)
 
 @everywhere begin
-    using EmulatorsTrainer, PythonCall
+    using EmulatorsTrainer, PyCall
     include($GENERATION_FILE)
     using .CapseCambMnuW0WaGeneration
     const CAMB_BACKEND = CapseCambMnuW0WaGeneration.initialize_backend()
