@@ -38,3 +38,22 @@ julia --project=. validate.jl TT data/camb_mnuw0wacdm_1000 artifacts/camb_mnuw0w
 
 TT/TE/EE use 256 Chebyshev-Lobatto nodes with linear targets. PP uses 192
 Lobatto nodes with a log target. A seeded 80/20 split is shared by all spectra.
+
+## Narval generation
+
+The Slurm launcher uses 128 one-core CAMB workers. Threading is explicitly
+disabled for Julia, OpenMP, OpenBLAS, MKL, NumExpr, and Accelerate so that each
+CAMB instance stays within its one-CPU allocation:
+
+```bash
+export PROJECT_DIR=/home/mbonici/test_emu/emulator-zoo/Capse.jl/camb_mnuw0wacdm
+export OUTPUT=/project/rrg-wperciva/mbonici/emulator_training/Capse/camb_mnuw0wacdm/camb_mnuw0wacdm_20000
+
+cd "$PROJECT_DIR"
+sbatch --account=rrg-wperciva \
+    --export=ALL,PROJECT_DIR="$PROJECT_DIR",SAMPLES=20000,SEED=20260735,OUTPUT="$OUTPUT" \
+    capse_generate.sbatch
+```
+
+The generated dataset is merged directly under `OUTPUT` with one HDF5 shard
+per distributed worker and the fixed global design seed preserved in metadata.
