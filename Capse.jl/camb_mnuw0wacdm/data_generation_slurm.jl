@@ -16,7 +16,9 @@ function option(name, default)
 end
 
 n_samples = parse(Int, option("--samples", "20000"))
-output_directory = abspath(option("--output", error("--output is required")))
+output_argument = option("--output", nothing)
+output_argument === nothing && error("--output is required")
+output_directory = abspath(output_argument)
 seed = parse(Int, option("--seed", string(CapseCambMnuW0WaGeneration.DESIGN_SEED)))
 force = "--force" in ARGS
 
