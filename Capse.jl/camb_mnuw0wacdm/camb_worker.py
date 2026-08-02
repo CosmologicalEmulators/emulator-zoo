@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.interpolate import CubicSpline
 
 import camb
 
@@ -64,10 +63,4 @@ def compute_spectra(parameters, lmax=9000):
         "EE": (cmb[: lmax + 1, 1] * dl)[mask],
         "PP": (lens[: lmax + 1, 0] * pp_factor)[mask],
     }
-    nodes_256 = lobatto_nodes(256, 2.0, float(lmax))
-    nodes_192 = lobatto_nodes(192, 2.0, float(lmax))
-    output = {f"{name}_dense": values for name, values in dense.items()}
-    for name in ("TT", "TE", "EE"):
-        output[name] = CubicSpline(ell, dense[name])(nodes_256)
-    output["PP"] = CubicSpline(ell, dense["PP"])(nodes_192)
-    return output
+    return {f"{name}_dense": values for name, values in dense.items()}

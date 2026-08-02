@@ -1,8 +1,12 @@
+ENV["JULIA_PYTHONCALL_EXE"] = get(ENV, "JULIA_PYTHONCALL_EXE", something(Sys.which("python"), "python"))
+
 using AbstractCosmologicalEmulators
 using DataFrames
 using EmulatorsTrainer
+using HDF5
 using JSON3
 using NPZ
+using PythonCall
 using SimpleChains
 
 const INPUT_COLUMNS = [
@@ -29,7 +33,6 @@ function write_postprocessing(directory, spectrum, log_target)
         exp.(input[1:1, :]) .* 1.0e-10 .* $tau_julia_batch
     end
     $inverse_julia .* factor
-end
 """)
     write(joinpath(directory, "postprocessing.py"), """import jax.numpy as jnp
 
@@ -38,6 +41,61 @@ def postprocessing(input, output):
     restored = $inverse_python
     return restored * factor[..., None] if output.ndim == 2 else restored * factor
 """)
+end
+
+function interpolate_dense_chunk(dense, ell_dense, nodes, cubic_spline)
+    spline = cubic_spline(ell_dense, dense; axis=1)
+    return pyconvert(Matrix{Float64}, spline(nodes))
+end
+
+function load_camb_training_frame(path, spectrum, node_count, log_target)
+    cubic_spline = pyimport("scipy.interpolate").CubicSpline
+    h5open(path, "r") do file
+        parameters_array = Array(file["parameters"][:, :])
+        parameter_names = String.(file["parameter_names"][:])
+        valid = Bool.(file["valid"][:])
+        all(valid) || error("HDF5 dataset contains invalid samples")
+        dense_dataset = file["observables/$(spectrum)_dense"]
+        ell_dense = Float64.(file["axes/ell_dense"][:])
+        nodes = Float64.(file["axes/$(spectrum == "PP" ? "ell_192" : "ell_256")"][:])
+        size(dense_dataset, 2) == length(ell_dense) || error("Dense axis length mismatch")
+        length(nodes) == node_count || error("Training node count mismatch")
+
+        n_samples = size(parameters_array, 1)
+        targets = Matrix{Float64}(undef, n_samples, node_count)
+        chunk_size = 256
+        for first_index in 1:chunk_size:n_samples
+            last_index = min(first_index + chunk_size - 1, n_samples)
+            dense = Array(dense_dataset[first_index:last_index, :])
+            targets[first_index:last_index, :] = interpolate_dense_chunk(
+                dense, ell_dense, nodes, cubic_spline,
+            )
+        end
+
+        result = DataFrame(
+            sample_id=String[],
+            ln10As=Float64[], ns=Float64[], tau=Float64[], H0=Float64[],
+            omega_b=Float64[], omega_c=Float64[], Mnu=Float64[], w0=Float64[],
+            wa=Float64[], observable=Vector{Float64}[],
+        )
+        for sample_index in axes(parameters_array, 1)
+            parameters = Dict(parameter_names[j] => parameters_array[sample_index, j]
+                for j in axes(parameters_array, 2))
+            amplitude = amplitude_factor(parameters, spectrum)
+            target = log_target || spectrum == "PP" ?
+                log.(targets[sample_index, :] ./ amplitude) :
+                targets[sample_index, :] ./ amplitude
+            push!(result, (
+                sample_id="sample_$(lpad(sample_index, 6, '0'))",
+                ln10As=Float64(parameters["ln10As"]), ns=Float64(parameters["ns"]),
+                tau=Float64(parameters["tau"]), H0=Float64(parameters["H0"]),
+                omega_b=Float64(parameters["omega_b"]), omega_c=Float64(parameters["omega_c"]),
+                Mnu=Float64(parameters["Mnu"]), w0=Float64(parameters["w0"]),
+                wa=Float64(parameters["wa"]), observable=target,
+            ))
+        end
+        return result
+    end
 end
 
 function main()
@@ -53,41 +111,8 @@ function main()
     output_directory = joinpath(output_root, requested_spectrum)
     node_count = spectrum == "PP" ? 192 : 256
 
-    dataset = EmulatorsTrainer.load_hdf5_dataset(data_directory)
-    all(dataset.valid) || error("HDF5 dataset contains invalid samples")
-    parameters_array = dataset.parameters
-    parameter_names = dataset.parameter_names
-    observable = get(dataset.observables, Symbol(spectrum), nothing)
-    observable === nothing && error("Observable $spectrum is not present in $data_directory")
-    node_count == size(observable, 2) || error("Expected $node_count nodes, got $(size(observable, 2))")
-
-    frame = DataFrame(
-        sample_id=String[],
-        ln10As=Float64[], ns=Float64[], tau=Float64[], H0=Float64[],
-        omega_b=Float64[], omega_c=Float64[], Mnu=Float64[], w0=Float64[],
-        wa=Float64[], observable=Vector{Float64}[],
-    )
-    for sample_index in axes(parameters_array, 1)
-        parameters = Dict(parameter_names[j] => parameters_array[sample_index, j]
-            for j in axes(parameters_array, 2))
-        sample_id = "sample_$(lpad(sample_index, 6, '0'))"
-        target = spectrum == "PP" ? log.(observable[sample_index, :] ./ amplitude_factor(parameters, spectrum)) :
-            observable[sample_index, :] ./ amplitude_factor(parameters, spectrum)
-        push!(frame, (
-            sample_id=sample_id,
-            ln10As=Float64(parameters["ln10As"]),
-            ns=Float64(parameters["ns"]),
-            tau=Float64(parameters["tau"]),
-            H0=Float64(parameters["H0"]),
-            omega_b=Float64(parameters["omega_b"]),
-            omega_c=Float64(parameters["omega_c"]),
-            Mnu=Float64(parameters["Mnu"]),
-            w0=Float64(parameters["w0"]),
-            wa=Float64(parameters["wa"]),
-            observable=target,
-        ))
-    end
-    load_report = (loaded=size(parameters_array, 1), skipped=0)
+    frame = load_camb_training_frame(data_directory, spectrum, node_count, log_target)
+    load_report = (loaded=nrow(frame), skipped=0)
     println("Loaded $(load_report.loaded), skipped $(load_report.skipped) samples")
 
     input_limits = get_minmax_in(frame, INPUT_COLUMNS)
@@ -126,9 +151,12 @@ function main()
     mkpath(output_directory)
     npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
     npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    grid_name = spectrum == "PP" ? :ell_192 : :ell_256
-    haskey(dataset.axes, grid_name) || error("Missing axis $grid_name in HDF5 dataset")
-    npzwrite(joinpath(output_directory, "l.npy"), dataset.axes[grid_name])
+    grid_name = spectrum == "PP" ? "ell_192" : "ell_256"
+    training_axis = h5open(data_directory, "r") do file
+        haskey(file, "axes/$grid_name") || error("Missing axis $grid_name in HDF5 dataset")
+        Float64.(file["axes/$grid_name"][:])
+    end
+    npzwrite(joinpath(output_directory, "l.npy"), training_axis)
     npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
     npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
     open(joinpath(output_directory, "nn_setup.json"), "w") do stream
@@ -174,6 +202,9 @@ function main()
         "train_sample_ids" => frame.sample_id[train_indices],
         "validation_sample_ids" => frame.sample_id[validation_indices],
         "node_count" => node_count,
+        "interpolation_method" => "SciPy CubicSpline on dense ell grid at training time",
+        "interpolation_source" => "$(spectrum)_dense",
+        "interpolation_grid" => node_count == 192 ? "ell_192" : "ell_256",
         "output_transform" => (spectrum == "PP" || log_target) ? "log" : "linear",
         "requested_spectrum" => requested_spectrum,
     )

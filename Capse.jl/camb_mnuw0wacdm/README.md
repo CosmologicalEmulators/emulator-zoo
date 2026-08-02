@@ -36,8 +36,13 @@ julia -t 8 --project=. train.jl EE_LOG
 julia --project=. validate.jl TT data/camb_mnuw0wacdm_1000 artifacts/camb_mnuw0wacdm_1000/TT
 ```
 
-TT/TE/EE use 256 Chebyshev-Lobatto nodes with linear targets. PP uses 192
-Lobatto nodes with a log target. A seeded 80/20 split is shared by all spectra.
+The generated HDF5 dataset stores only the dense spectra on `ell_dense` from
+`ell=2` through `ell=9000`. It does not store pre-interpolated training
+targets. During training, `train.jl` reads the requested dense observable in
+chunks and applies `scipy.interpolate.CubicSpline` to the stored Lobatto grid:
+TT/TE/EE use 256 nodes and PP uses 192 nodes. A seeded 80/20 split is shared
+by all spectra, and the interpolation configuration is recorded in the
+training metadata.
 
 ## Narval generation
 

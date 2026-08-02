@@ -35,11 +35,10 @@ function compute_observables(parameters, backend)
     result = backend.compute_spectra(parameters, 9000)
     values = Tuple(
         pyconvert(Vector{Float64}, result[name])
-        for name in ("TT", "TE", "EE", "PP", "TT_dense", "TE_dense", "EE_dense", "PP_dense")
+        for name in ("TT_dense", "TE_dense", "EE_dense", "PP_dense")
     )
     arrays = (
-        TT=values[1], TE=values[2], EE=values[3], PP=values[4],
-        TT_dense=values[5], TE_dense=values[6], EE_dense=values[7], PP_dense=values[8],
+        TT_dense=values[1], TE_dense=values[2], EE_dense=values[3], PP_dense=values[4],
     )
     all(x -> all(isfinite, x), arrays) || error("CAMB output contains NaN or Inf")
     any(arrays.TT_dense .< 0) && error("TT contains negative values")
