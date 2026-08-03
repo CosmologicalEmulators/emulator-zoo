@@ -48,6 +48,23 @@ function interpolate_dense_chunk(dense, ell_dense, nodes, cubic_spline)
     return convert(Matrix{Float64}, spline(nodes))
 end
 
+function lobatto_nodes(node_count; lower=2.0, upper=9000.0)
+    node_count >= 2 || error("Lobatto node count must be at least 2")
+    theta = range(0.0, π; length=node_count)
+    nodes = 0.5 .* (lower + upper) .- 0.5 .* (upper - lower) .* cos.(theta)
+    nodes[1] = lower
+    nodes[end] = upper
+    return nodes
+end
+
+function training_nodes(file, spectrum, node_count)
+    grid_name = node_count == 192 ? "ell_192" : node_count == 256 ? "ell_256" : nothing
+    if grid_name !== nothing && haskey(file, "axes/$grid_name")
+        return Float64.(file["axes/$grid_name"][:])
+    end
+    return lobatto_nodes(node_count)
+end
+
 function load_camb_training_frame(path, spectrum, node_count, log_target)
     cubic_spline = pyimport("scipy.interpolate").CubicSpline
     h5open(path, "r") do file
@@ -57,7 +74,7 @@ function load_camb_training_frame(path, spectrum, node_count, log_target)
         all(valid) || error("HDF5 dataset contains invalid samples")
         dense_dataset = file["observables/$(spectrum)_dense"]
         ell_dense = Float64.(file["axes/ell_dense"][:])
-        nodes = Float64.(file["axes/$(spectrum == "PP" ? "ell_192" : "ell_256")"][:])
+        nodes = training_nodes(file, spectrum, node_count)
         size(dense_dataset, 2) == length(ell_dense) || error("Dense axis length mismatch")
         length(nodes) == node_count || error("Training node count mismatch")
 
@@ -109,7 +126,8 @@ function main()
     output_root = length(ARGS) >= 3 ? abspath(ARGS[3]) :
         joinpath(@__DIR__, "artifacts", "camb_mnuw0wacdm_1000")
     output_directory = joinpath(output_root, requested_spectrum)
-    node_count = spectrum == "PP" ? 192 : 256
+    default_node_count = spectrum == "PP" ? 192 : 256
+    node_count = parse(Int, get(ENV, "CAPSE_NODE_COUNT", string(default_node_count)))
 
     frame = load_camb_training_frame(data_directory, spectrum, node_count, log_target)
     load_report = (loaded=nrow(frame), skipped=0)
@@ -151,10 +169,8 @@ function main()
     mkpath(output_directory)
     npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
     npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    grid_name = spectrum == "PP" ? "ell_192" : "ell_256"
     training_axis = h5open(data_directory, "r") do file
-        haskey(file, "axes/$grid_name") || error("Missing axis $grid_name in HDF5 dataset")
-        Float64.(file["axes/$grid_name"][:])
+        training_nodes(file, spectrum, node_count)
     end
     npzwrite(joinpath(output_directory, "l.npy"), training_axis)
     npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
@@ -204,7 +220,8 @@ function main()
         "node_count" => node_count,
         "interpolation_method" => "SciPy CubicSpline on dense ell grid at training time",
         "interpolation_source" => "$(spectrum)_dense",
-        "interpolation_grid" => node_count == 192 ? "ell_192" : "ell_256",
+        "interpolation_grid" => node_count == 192 ? "ell_192" :
+            node_count == 256 ? "ell_256" : "generated_lobatto_$node_count",
         "output_transform" => (spectrum == "PP" || log_target) ? "log" : "linear",
         "requested_spectrum" => requested_spectrum,
     )
