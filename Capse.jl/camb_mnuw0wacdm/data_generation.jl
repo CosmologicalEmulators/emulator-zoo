@@ -45,9 +45,14 @@ end
     using EmulatorsTrainer, PyCall
     include($GENERATION_FILE)
     using .CapseCambMnuW0WaGeneration
-    const CAMB_BACKEND = CapseCambMnuW0WaGeneration.initialize_backend()
+    const CAMB_BACKEND = Ref{Any}(nothing)
     function compute_camb_observables(parameters)
-        return CapseCambMnuW0WaGeneration.compute_observables(parameters, CAMB_BACKEND)
+        backend = CAMB_BACKEND[]
+        if backend === nothing
+            backend = CapseCambMnuW0WaGeneration.initialize_backend()
+            CAMB_BACKEND[] = backend
+        end
+        return CapseCambMnuW0WaGeneration.compute_observables(parameters, backend)
     end
 end
 
@@ -58,7 +63,7 @@ dataset_file = compute_dataset_hdf5(
     design, CapseCambMnuW0WaGeneration.PARAMETER_NAMES, output_directory, compute_camb_observables;
     mode=(n_processes > 0 ? :distributed : :serial),
     static_arrays=CapseCambMnuW0WaGeneration.static_axes(master_backend),
-    force,
+    force, skip_errors=true,
 )
 metadata = Dict(
     "created_at" => string(now()), "requested_samples" => n_samples,
