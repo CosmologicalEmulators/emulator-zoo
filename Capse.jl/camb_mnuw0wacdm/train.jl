@@ -33,6 +33,7 @@ function write_postprocessing(directory, spectrum, log_target)
         exp.(input[1:1, :]) .* 1.0e-10 .* $tau_julia_batch
     end
     $inverse_julia .* factor
+end
 """)
     write(joinpath(directory, "postprocessing.py"), """import jax.numpy as jnp
 
