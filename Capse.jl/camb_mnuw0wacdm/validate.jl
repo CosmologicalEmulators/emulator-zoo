@@ -65,13 +65,13 @@ end
 
 function finite_stats(values)
     n_ell = size(values, 1)
-    output = (p50=fill(NaN, n_ell), p95=fill(NaN, n_ell), maximum=fill(NaN, n_ell))
+    output = (p68=fill(NaN, n_ell), p95=fill(NaN, n_ell), p99=fill(NaN, n_ell))
     for index in 1:n_ell
         row = filter(isfinite, vec(values[index, :]))
         isempty(row) && continue
-        output.p50[index] = median(row)
+        output.p68[index] = quantile(row, 0.68)
         output.p95[index] = quantile(row, 0.95)
-        output.maximum[index] = maximum(row)
+        output.p99[index] = quantile(row, 0.99)
     end
     return output
 end
@@ -110,32 +110,21 @@ function main()
         error("Emulator output shape $(size(prediction)) matches neither l.npy length " *
               "$(length(training_ell)) nor dense ell length $(length(data.ell))")
     end
-    truth_nodes = cubic_values(data.ell, data.truth, training_ell)
-
     sigma_dense = if spectrum == "TE"
         sqrt.((data.truth .^ 2 .+ data.tt .* data.ee) ./ reshape(2 .* data.ell .+ 1, :, 1))
     else
         sqrt.(2 ./ reshape(2 .* data.ell .+ 1, :, 1)) .* abs.(data.truth)
     end
-    sigma_nodes = cubic_values(data.ell, sigma_dense, training_ell)
     dense_error = abs.(prediction_dense .- data.truth) ./ sigma_dense
-    node_error = abs.(prediction_nodes .- truth_nodes) ./ sigma_nodes
     dense_stats = finite_stats(dense_error)
-    node_stats = finite_stats(node_error)
     dense_sample_rms = sample_rms(dense_error)
-    node_sample_rms = sample_rms(node_error)
 
     npzwrite(joinpath(artifact, "validation_metrics.npz"), Dict(
         "ell_dense" => data.ell,
-        "ell_training" => training_ell,
-        "dense_knox_p50" => dense_stats.p50,
+        "dense_knox_p68" => dense_stats.p68,
         "dense_knox_p95" => dense_stats.p95,
-        "dense_knox_max" => dense_stats.maximum,
-        "node_knox_p50" => node_stats.p50,
-        "node_knox_p95" => node_stats.p95,
-        "node_knox_max" => node_stats.maximum,
+        "dense_knox_p99" => dense_stats.p99,
         "dense_sample_rms" => dense_sample_rms,
-        "node_sample_rms" => node_sample_rms,
         "sample_indices" => indices,
         "parameters" => data.parameters,
     ))
@@ -145,12 +134,11 @@ function main()
         "n_validation" => length(indices),
         "validation_mode" => get(ENV, "CAPSE_VALIDATE_ALL", "0") == "1" ? "external_all" : "training_holdout",
         "node_count" => length(training_ell),
-        "dense_knox_median" => median(filter(isfinite, vec(dense_error))),
+        "dense_knox_p68" => quantile(filter(isfinite, vec(dense_error)), 0.68),
         "dense_knox_p95" => quantile(filter(isfinite, vec(dense_error)), 0.95),
+        "dense_knox_p99" => quantile(filter(isfinite, vec(dense_error)), 0.99),
         "dense_sample_rms_median" => median(filter(isfinite, dense_sample_rms)),
         "dense_sample_rms_p95" => quantile(filter(isfinite, dense_sample_rms), 0.95),
-        "node_knox_median" => median(filter(isfinite, vec(node_error))),
-        "node_knox_p95" => quantile(filter(isfinite, vec(node_error)), 0.95),
     )
     open(joinpath(artifact, "validation_report.json"), "w") do stream
         JSON3.write(stream, report)

@@ -14,11 +14,14 @@ function main()
     mkpath(plot_directory)
 
     ell = metrics["ell_dense"]
-    training_ell = metrics["ell_training"]
     p = plot(
         ell,
-        metrics["dense_knox_p50"],
-        label="dense median",
+        metrics["dense_knox_p99"],
+        fillrange=0,
+        fillalpha=0.55,
+        color=:steelblue,
+        linealpha=0,
+        label="99%",
         xscale=:log10,
         yscale=:log10,
         xlabel="ℓ",
@@ -26,10 +29,10 @@ function main()
         title="$spectrum validation: Knox-normalized error",
         grid=true,
     )
-    plot!(p, ell, metrics["dense_knox_p95"], label="dense p95")
-    plot!(p, training_ell, metrics["node_knox_p95"], seriestype=:scatter,
-        markersize=2, label="node p95")
-    hline!(p, [1.0], linestyle=:dash, color=:black, label="1 Knox sigma")
+    plot!(p, ell, metrics["dense_knox_p95"], fillrange=0,
+        fillalpha=0.65, color=:mediumorchid, linealpha=0, label="95%")
+    plot!(p, ell, metrics["dense_knox_p68"], fillrange=0,
+        fillalpha=0.85, color=:gold, linealpha=0, label="68%")
     savefig(p, joinpath(plot_directory, "knox_error_vs_ell.png"))
 
     rms = filter(isfinite, metrics["dense_sample_rms"])
