@@ -99,11 +99,17 @@ function main()
     end
     indices = sample_indices(metadata, n_samples)
     data = load_dataset(dataset, spectrum, indices)
-    emulator_dense = Capse.load_emulator(artifact; interpolation=:auto)
-    emulator_nodes = Capse.load_emulator(artifact; interpolation=:none)
-    prediction_dense = Base.invokelatest(Capse.get_Cℓ, data.parameters, emulator_dense)
-    prediction_nodes = Base.invokelatest(Capse.get_Cℓ, data.parameters, emulator_nodes)
-    training_ell = Capse.get_training_ℓgrid(emulator_nodes)
+    emulator = Capse.load_emulator(artifact)
+    prediction = Base.invokelatest(Capse.get_Cℓ, data.parameters, emulator)
+    training_ell = Float64.(npzread(joinpath(artifact, "l.npy")))
+    prediction_dense, prediction_nodes = if size(prediction, 1) == length(training_ell)
+        (cubic_values(training_ell, prediction, data.ell), prediction)
+    elseif size(prediction, 1) == length(data.ell)
+        (prediction, cubic_values(data.ell, prediction, training_ell))
+    else
+        error("Emulator output shape $(size(prediction)) matches neither l.npy length " *
+              "$(length(training_ell)) nor dense ell length $(length(data.ell))")
+    end
     truth_nodes = cubic_values(data.ell, data.truth, training_ell)
 
     sigma_dense = if spectrum == "TE"
