@@ -86,12 +86,15 @@ function sample_rms(values)
 end
 
 function main()
-    length(ARGS) == 3 || error("Usage: validate.jl SPECTRUM DATASET ARTIFACT_DIRECTORY")
+    length(ARGS) in (3, 4) ||
+        error("Usage: validate.jl SPECTRUM DATASET ARTIFACT_DIRECTORY [OUTPUT_DIRECTORY]")
     requested_spectrum = uppercase(ARGS[1])
     spectrum = endswith(requested_spectrum, "_LOG") ? chop(requested_spectrum; tail=4) : requested_spectrum
     spectrum in ("TT", "TE", "EE", "PP") || error("Unknown spectrum: $spectrum")
     dataset = abspath(ARGS[2])
     artifact = abspath(ARGS[3])
+    output_directory = length(ARGS) == 4 ? abspath(ARGS[4]) : artifact
+    mkpath(output_directory)
     metadata = JSON3.read(read(joinpath(artifact, "training_metadata.json"), String))
 
     n_samples = h5open(dataset, "r") do file
@@ -119,7 +122,7 @@ function main()
     dense_stats = finite_stats(dense_error)
     dense_sample_rms = sample_rms(dense_error)
 
-    npzwrite(joinpath(artifact, "validation_metrics.npz"), Dict(
+    npzwrite(joinpath(output_directory, "validation_metrics.npz"), Dict(
         "ell_dense" => data.ell,
         "dense_knox_p68" => dense_stats.p68,
         "dense_knox_p95" => dense_stats.p95,
@@ -128,7 +131,9 @@ function main()
         "sample_indices" => indices,
         "parameters" => data.parameters,
     ))
-    npzwrite(joinpath(artifact, "validation_predictions_dense.npy"), prediction_dense)
+    if get(ENV, "CAPSE_SAVE_PREDICTIONS", "0") == "1"
+        npzwrite(joinpath(output_directory, "validation_predictions_dense.npy"), prediction_dense)
+    end
     report = Dict{String,Any}(
         "spectrum" => spectrum,
         "n_validation" => length(indices),
@@ -140,7 +145,7 @@ function main()
         "dense_sample_rms_median" => median(filter(isfinite, dense_sample_rms)),
         "dense_sample_rms_p95" => quantile(filter(isfinite, dense_sample_rms), 0.95),
     )
-    open(joinpath(artifact, "validation_report.json"), "w") do stream
+    open(joinpath(output_directory, "validation_report.json"), "w") do stream
         JSON3.write(stream, report)
     end
     JSON3.pretty(report)
