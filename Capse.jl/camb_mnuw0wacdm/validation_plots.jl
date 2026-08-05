@@ -14,6 +14,7 @@ function main()
     mkpath(plot_directory)
 
     ell = metrics["ell_dense"]
+    y_max = maximum(filter(isfinite, metrics["dense_knox_p99"]))
     p = plot(
         ell,
         metrics["dense_knox_p99"],
@@ -23,7 +24,7 @@ function main()
         linealpha=0,
         label="99%",
         xscale=:log10,
-        yscale=:log10,
+        ylims=(0, 1.05 * y_max),
         xlabel="ℓ",
         ylabel="absolute error / cosmic-variance error",
         title="$spectrum validation: Knox-normalized error",
