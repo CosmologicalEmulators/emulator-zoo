@@ -126,7 +126,9 @@ function main()
         joinpath(@__DIR__, "data", "camb_mnuw0wacdm_1000", "dataset.h5")
     output_root = length(ARGS) >= 3 ? abspath(ARGS[3]) :
         joinpath(@__DIR__, "artifacts", "camb_mnuw0wacdm_1000")
-    output_directory = joinpath(output_root, requested_spectrum)
+    # Keep artifact subdirectories canonical even when the requested spectrum
+    # selects a log target (e.g. TT_LOG is stored in the TT directory).
+    output_directory = joinpath(output_root, spectrum)
     default_node_count = spectrum == "PP" ? 192 : 256
     node_count = parse(Int, get(ENV, "CAPSE_NODE_COUNT", string(default_node_count)))
 
