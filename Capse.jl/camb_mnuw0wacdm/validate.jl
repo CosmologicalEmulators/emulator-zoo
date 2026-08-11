@@ -9,10 +9,11 @@ const PARAMETER_NAMES = [
     "ln10As", "ns", "tau", "H0", "omega_b", "omega_c", "Mnu", "w0", "wa",
 ]
 
-function sample_indices(metadata, n_samples)
+function sample_indices(artifact, n_samples)
     if get(ENV, "CAPSE_VALIDATE_ALL", "0") == "1"
         return collect(1:n_samples)
     end
+    metadata = JSON3.read(read(joinpath(artifact, "training_metadata.json"), String))
     haskey(metadata, "validation_sample_ids") ||
         error("Artifact has no validation_sample_ids; set CAPSE_VALIDATE_ALL=1 for an external benchmark")
     return [parse(Int, split(String(id), "_")[2]) for id in metadata["validation_sample_ids"]]
@@ -95,12 +96,10 @@ function main()
     artifact = abspath(ARGS[3])
     output_directory = length(ARGS) == 4 ? abspath(ARGS[4]) : artifact
     mkpath(output_directory)
-    metadata = JSON3.read(read(joinpath(artifact, "training_metadata.json"), String))
-
     n_samples = h5open(dataset, "r") do file
         size(file["parameters"], 1)
     end
-    indices = sample_indices(metadata, n_samples)
+    indices = sample_indices(artifact, n_samples)
     data = load_dataset(dataset, spectrum, indices)
     emulator = Capse.load_emulator(artifact)
     prediction = Base.invokelatest(Capse.get_Cℓ, data.parameters, emulator)
