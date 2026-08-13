@@ -4,9 +4,11 @@ using Printf
 using PyCall
 
 const K_GRID = 10.0 .^ range(log10(5.0e-6), log10(100.0); length=300)
-const NAMES = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "Mν", "w0", "wa"]
-const VALUES = [0.8, 3.044, 0.965, 67.4, 0.0224, 0.12, 0.06, -1.0, 0.0]
+const NAMES = ["z", "H0", "ombh2", "omch2", "Mν", "w0", "wa"]
+const VALUES = [0.8, 67.4, 0.0224, 0.12, 0.06, -1.0, 0.0]
 const PARAMETERS = Dict(NAMES .=> VALUES)
+const FIXED_LN10AS = 3.044
+const FIXED_NS = 0.965
 
 function main()
     p = PARAMETERS
@@ -21,8 +23,8 @@ function main()
             "h" => h,
             "omega_b" => p["ombh2"],
             "omega_cdm" => p["omch2"],
-            "ln10^{10}A_s" => p["ln10As"],
-            "n_s" => p["ns"],
+            "ln10^{10}A_s" => FIXED_LN10AS,
+            "n_s" => FIXED_NS,
             "tau_reio" => 0.0568,
             "N_ur" => 2.033,
             "N_ncdm" => 1,
@@ -56,4 +58,3 @@ function main()
 end
 
 main()
-

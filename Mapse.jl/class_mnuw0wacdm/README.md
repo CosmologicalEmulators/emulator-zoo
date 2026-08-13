@@ -9,11 +9,17 @@ Pk_lin_cb  cold+baryon linear Pcb
 
 It deliberately does not generate or train nonlinear-power or boost emulators. Mapse computes Halofit or HMCode nonlinear power from these linear spectra.
 
-The public parameter order is
+The public prediction parameter order is
 
 ```text
 ln10As, ns, H0, ombh2, omch2, Mnu, w0, wa
 ```
+
+Generation fixes `ln10As=3.044` and `ns=0.965`; the Latin hypercube spans
+only `z, H0, ombh2, omch2, Mnu, w0, wa`. The trainer divides those fixed
+spectra by the primordial spectrum, growth, and analytic LCDM transfer
+baseline. Mapse restores arbitrary public `ln10As` and `ns` analytically at
+prediction time.
 
 The generated spectra use physical units: `k` in `Mpc^-1` and `P(k)` in `Mpc^3`.
 

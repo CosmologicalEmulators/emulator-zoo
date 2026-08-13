@@ -36,4 +36,3 @@ for artifact in ("Pk_lin_mm", "Pk_lin_cb")
     isfinite(metadata["best_validation_loss"]) || error("Non-finite validation loss")
 end
 println("Mapse CLASS Pmm/Pcb smoke test passed")
-

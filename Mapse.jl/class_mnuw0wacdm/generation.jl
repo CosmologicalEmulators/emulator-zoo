@@ -4,12 +4,14 @@ using EmulatorsTrainer
 using PyCall
 using Random
 
-export PARAMETER_NAMES, LOWER_BOUNDS, UPPER_BOUNDS, K_GRID
+export PARAMETER_NAMES, LOWER_BOUNDS, UPPER_BOUNDS, K_GRID, FIXED_LN10AS, FIXED_NS
 export create_design, initialize_backend, worker_backend, compute_observables
 
 const PARAMETER_NAMES = ["z", "ln10As", "ns", "H0", "ombh2", "omch2", "Mν", "w0", "wa"]
-const LOWER_BOUNDS = [0.0, 2.0, 0.8, 50.0, 0.02, 0.08, 0.0, -3.0, -3.0]
-const UPPER_BOUNDS = [5.0, 3.5, 1.1, 90.0, 0.025, 0.18, 0.5, 0.5, 2.0]
+const LOWER_BOUNDS = [0.0, 50.0, 0.02, 0.08, 0.0, -3.0, -3.0]
+const UPPER_BOUNDS = [5.0, 90.0, 0.025, 0.18, 0.5, 1.0, 2.0]
+const FIXED_LN10AS = 3.044
+const FIXED_NS = 0.965
 const K_GRID = collect(10.0 .^ range(log10(5.0e-6), log10(100.0); length=300))
 
 struct Backend
@@ -21,13 +23,19 @@ const WORKER_BACKEND = Ref{Union{Nothing,Backend}}(nothing)
 function create_design(n_samples::Integer; seed::Integer=20260763)
     n_samples > 0 || throw(ArgumentError("n_samples must be positive"))
     Random.seed!(seed)
-    design = create_training_dataset(n_samples, LOWER_BOUNDS, UPPER_BOUNDS)
-    w0 = view(design, 8, :)
-    wa = copy(view(design, 9, :))
+    sampled_design = create_training_dataset(n_samples, LOWER_BOUNDS, UPPER_BOUNDS)
+    w0 = view(sampled_design, 6, :)
+    wa = copy(view(sampled_design, 7, :))
     for (w0_index, wa_index) in zip(sortperm(w0), sortperm(wa; rev=true))
-        design[9, w0_index] = wa[wa_index]
+        sampled_design[7, w0_index] = wa[wa_index]
     end
-    all(design[8, :] .+ design[9, :] .< 0) || error("Failed to enforce w0 + wa < 0")
+    all(sampled_design[6, :] .+ sampled_design[7, :] .< 0) ||
+        error("Failed to enforce w0 + wa < 0")
+    design = Matrix{Float64}(undef, length(PARAMETER_NAMES), n_samples)
+    design[1, :] .= sampled_design[1, :]
+    design[2, :] .= FIXED_LN10AS
+    design[3, :] .= FIXED_NS
+    design[4:end, :] .= sampled_design[2:end, :]
     return design
 end
 
@@ -97,4 +105,3 @@ end
 compute_observables(parameters) = compute_observables(parameters, worker_backend())
 
 end
-

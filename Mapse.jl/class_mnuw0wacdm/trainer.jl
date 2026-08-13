@@ -46,6 +46,10 @@ k = dataset.axes[:k]
 size(spectra) == (size(parameters, 1), length(k)) || error("Spectrum and k-grid shapes disagree")
 
 indices = Dict(name => only(findall(==(name), parameter_names)) for name in parameter_names)
+all(name -> haskey(indices, name), FULL_PARAMETER_NAMES) ||
+    error("Dataset parameter names do not match the public Mapse schema")
+fixed_ln10As = only(unique(parameters[:, indices["ln10As"]]))
+fixed_ns = only(unique(parameters[:, indices["ns"]]))
 n_samples = size(parameters, 1)
 network_inputs = Matrix{Float64}(undef, length(NETWORK_PARAMETER_NAMES), n_samples)
 targets = Matrix{Float64}(undef, length(k), n_samples)
@@ -141,5 +145,7 @@ save_training_result(output_directory, result; metadata=Dict(
     "n_validation" => length(validation_indices),
     "pca_components" => n_components,
     "split_seed" => arguments["split-seed"],
+    "generation_ln10As" => fixed_ln10As,
+    "generation_ns" => fixed_ns,
 ))
 println("Best validation loss: $(result.best_validation_loss)")
