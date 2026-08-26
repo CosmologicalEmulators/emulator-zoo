@@ -3,6 +3,26 @@ import numpy as np
 import camb
 
 
+RECOMBINATION_MODEL = "CosmoRec"
+LENS_MARGIN = 2050
+
+
+def backend_configuration():
+    probe = camb.set_params(recombination_model=RECOMBINATION_MODEL)
+    model = type(probe.Recomb).__name__
+    if model != RECOMBINATION_MODEL:
+        raise RuntimeError(
+            f"CAMB loaded recombination model {model}, expected {RECOMBINATION_MODEL}"
+        )
+    return {
+        "camb_version": camb.__version__,
+        "camb_path": camb.__file__,
+        "recombination_model": model,
+        "helium_fraction": "BBN consistency",
+        "lens_margin": LENS_MARGIN,
+    }
+
+
 def lobatto_nodes(n_nodes, lower=2.0, upper=9000.0):
     theta = np.linspace(0.0, np.pi, n_nodes)
     nodes = 0.5 * (lower + upper) - 0.5 * (upper - lower) * np.cos(theta)
@@ -11,7 +31,7 @@ def lobatto_nodes(n_nodes, lower=2.0, upper=9000.0):
     return nodes
 
 
-def compute_spectra(parameters, lmax=9000):
+def _build_params(parameters, lmax):
     mnu = parameters["Mnu"]
     pars = camb.CAMBparams()
     pars.set_cosmology(
@@ -23,7 +43,6 @@ def compute_spectra(parameters, lmax=9000):
         mnu=mnu,
         num_massive_neutrinos=1 if mnu > 0.0 else 0,
         nnu=3.046,
-        YHe=0.2454,
     )
     pars.InitPower.set_params(
         As=np.exp(parameters["ln10As"]) * 1.0e-10,
@@ -40,15 +59,24 @@ def compute_spectra(parameters, lmax=9000):
     pars.NonLinearModel.set_params(halofit_version="mead2020")
     pars = camb.set_params(
         cp=pars,
+        recombination_model=RECOMBINATION_MODEL,
         kmax=10,
         k_per_logint=130,
         lens_potential_accuracy=8,
+        lens_output_margin=LENS_MARGIN,
+        AccuracyBoost=1.0,
+        lSampleBoost=1.0,
         lAccuracyBoost=1.2,
         min_l_logl_sampling=6000,
         DoLateRadTruncation=False,
         halofit_version="mead2020",
-        lmax=lmax + 2000,
+        lmax=lmax,
     )
+    return pars
+
+
+def compute_spectra(parameters, lmax=9000):
+    pars = _build_params(parameters, lmax)
     results = camb.get_results(pars)
     cmb = results.get_lensed_scalar_cls(CMB_unit="muK", raw_cl=True)
     lens = results.get_lens_potential_cls(lmax=lmax, raw_cl=True)

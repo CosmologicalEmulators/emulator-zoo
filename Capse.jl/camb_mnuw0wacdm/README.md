@@ -13,16 +13,27 @@ H0       [50, 90]
 omega_b  [0.02, 0.025]
 omega_c  [0.08, 0.16]
 Mnu      [0, 0.5]
-w0       [-3, 1]
+w0       [-3, 0.5]
 wa       [-3, 2]
 ```
 
-All design points satisfy `w0 + wa < 0`. The assignment preserves the sampled
-LHS marginal values.
+Design points are drawn from an oversized Latin hypercube over the rectangular
+bounds and points violating `w0 + wa < -0.5` are rejected. This fills the complete
+allowed two-dimensional `w0`-`wa` region without imposing an artificial
+correlation between the two parameters.
+
+Spectra use the official ACT DR6 CAMB accuracy configuration: `kmax=10`,
+`k_per_logint=130`, nonlinear lensing and matter power, `lens_potential_accuracy=8`,
+`lens_margin=2050`, `lAccuracyBoost=1.2`, `min_l_logl_sampling=6000`,
+`DoLateRadTruncation=false`, CosmoRec, and Mead 2020 Halofit. Helium is set by
+CAMB's BBN consistency relation rather than fixed by hand.
 
 ```bash
 julia --project=. setup_local.jl
+julia --project=. test_design.jl
+python -m unittest test_camb_worker.py
 julia --project=. data_generation.jl 1000
+julia --project=. data_generation.jl 1000 data/pilot --seed 20260826
 
 julia -t 8 --project=. train.jl TT
 julia -t 8 --project=. train.jl TE
@@ -49,6 +60,13 @@ training metadata.
 The Slurm launcher uses 128 one-core CAMB workers. Threading is explicitly
 disabled for Julia, OpenMP, OpenBLAS, MKL, NumExpr, and Accelerate so that each
 CAMB instance stays within its one-CPU allocation:
+
+The Python interpreter embedded by PyCall must import a CAMB build linked to
+CosmoRec. `setup_local.jl` verifies this and fails before generation if the
+ordinary Recfast-only CAMB package is found. On Narval the tested CAMB source is
+registered in PyCall's Conda environment through
+`00-camb-cosmorec-local.pth`; the source and CosmoRec data directories must
+remain on shared project storage.
 
 ```bash
 export PROJECT_DIR=/home/mbonici/test_emu/emulator-zoo/Capse.jl/camb_mnuw0wacdm
