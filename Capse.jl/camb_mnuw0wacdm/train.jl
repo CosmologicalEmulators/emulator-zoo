@@ -49,7 +49,7 @@ function interpolate_dense_chunk(dense, ell_dense, nodes, cubic_spline)
     return convert(Matrix{Float64}, spline(nodes))
 end
 
-function lobatto_nodes(node_count; lower=2.0, upper=9000.0)
+function lobatto_nodes(node_count; lower=2.0, upper=9500.0)
     node_count >= 2 || error("Lobatto node count must be at least 2")
     theta = range(0.0, π; length=node_count)
     nodes = 0.5 .* (lower + upper) .- 0.5 .* (upper - lower) .* cos.(theta)
@@ -121,7 +121,7 @@ function main()
     requested_spectrum = uppercase(ARGS[1])
     log_target = endswith(requested_spectrum, "_LOG")
     spectrum = log_target ? chop(requested_spectrum; tail=4) : requested_spectrum
-    spectrum in ("TT", "TE", "EE", "PP") || error("Unknown spectrum: $requested_spectrum")
+    spectrum in ("TT", "TE", "EE", "BB", "PP") || error("Unknown spectrum: $requested_spectrum")
     data_directory = length(ARGS) >= 2 ? abspath(ARGS[2]) :
         joinpath(@__DIR__, "data", "camb_mnuw0wacdm_1000", "dataset.h5")
     output_root = length(ARGS) >= 3 ? abspath(ARGS[3]) :
@@ -163,7 +163,7 @@ function main()
             "spectrum" => spectrum,
             "parameters" => join(string.(INPUT_COLUMNS), ", "),
             "source" => "CAMB ACT-DR6 precision Mnu-w0-waCDM",
-            "constraint" => "w0 + wa < 0",
+            "constraint" => "w0 + wa < -0.5",
             "representation" => "Chebyshev-Lobatto nodes",
             "output_transform" => (spectrum == "PP" || log_target) ? "log" : "linear",
         ),
@@ -217,7 +217,7 @@ function main()
         "n_validation" => length(validation_indices),
         "split_seed" => SPLIT_SEED,
         "input_columns" => string.(INPUT_COLUMNS),
-        "constraint" => "w0 + wa < 0",
+        "constraint" => "w0 + wa < -0.5",
         "train_sample_ids" => frame.sample_id[train_indices],
         "validation_sample_ids" => frame.sample_id[validation_indices],
         "node_count" => node_count,

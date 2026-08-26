@@ -13,6 +13,7 @@ using .CapseCambMnuW0WaGeneration
     @test size(design) == (length(PARAMETER_NAMES), n_samples)
     @test UPPER_BOUNDS[8] == 0.5
     @test EARLY_W_MAX == -0.5
+    @test OUTPUT_LMAX == 9500
     @test all(LOWER_BOUNDS .< minimum(design; dims=2)[:, 1])
     @test all(maximum(design; dims=2)[:, 1] .< UPPER_BOUNDS)
 

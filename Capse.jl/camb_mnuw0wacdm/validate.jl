@@ -91,7 +91,7 @@ function main()
         error("Usage: validate.jl SPECTRUM DATASET ARTIFACT_DIRECTORY [OUTPUT_DIRECTORY]")
     requested_spectrum = uppercase(ARGS[1])
     spectrum = endswith(requested_spectrum, "_LOG") ? chop(requested_spectrum; tail=4) : requested_spectrum
-    spectrum in ("TT", "TE", "EE", "PP") || error("Unknown spectrum: $spectrum")
+    spectrum in ("TT", "TE", "EE", "BB", "PP") || error("Unknown spectrum: $spectrum")
     dataset = abspath(ARGS[2])
     artifact = abspath(ARGS[3])
     output_directory = length(ARGS) == 4 ? abspath(ARGS[4]) : artifact

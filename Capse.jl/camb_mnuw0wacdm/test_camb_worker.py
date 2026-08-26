@@ -20,6 +20,7 @@ FIDUCIAL_BOUNDARY_POINT = {
 
 class CambWorkerTests(unittest.TestCase):
     def test_act_configuration(self):
+        self.assertEqual(camb_worker.OUTPUT_LMAX, 9500)
         pars = camb_worker._build_params(FIDUCIAL_BOUNDARY_POINT, 500)
 
         self.assertEqual(type(pars.Recomb).__name__, "CosmoRec")
@@ -35,10 +36,15 @@ class CambWorkerTests(unittest.TestCase):
     def test_boundary_spectra(self):
         spectra = camb_worker.compute_spectra(FIDUCIAL_BOUNDARY_POINT, lmax=500)
 
+        self.assertEqual(
+            set(spectra),
+            {"TT_dense", "TE_dense", "EE_dense", "BB_dense", "PP_dense"},
+        )
         self.assertTrue(all(values.shape == (499,) for values in spectra.values()))
         self.assertTrue(all(np.all(np.isfinite(values)) for values in spectra.values()))
         self.assertTrue(np.all(spectra["TT_dense"] > 0.0))
         self.assertTrue(np.all(spectra["EE_dense"] > 0.0))
+        self.assertTrue(np.all(spectra["BB_dense"] > 0.0))
         self.assertTrue(np.all(spectra["PP_dense"] > 0.0))
 
 

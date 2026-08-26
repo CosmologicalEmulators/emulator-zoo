@@ -5,6 +5,7 @@ import camb
 
 RECOMBINATION_MODEL = "CosmoRec"
 LENS_MARGIN = 2050
+OUTPUT_LMAX = 9500
 
 
 def backend_configuration():
@@ -20,10 +21,11 @@ def backend_configuration():
         "recombination_model": model,
         "helium_fraction": "BBN consistency",
         "lens_margin": LENS_MARGIN,
+        "output_lmax": OUTPUT_LMAX,
     }
 
 
-def lobatto_nodes(n_nodes, lower=2.0, upper=9000.0):
+def lobatto_nodes(n_nodes, lower=2.0, upper=OUTPUT_LMAX):
     theta = np.linspace(0.0, np.pi, n_nodes)
     nodes = 0.5 * (lower + upper) - 0.5 * (upper - lower) * np.cos(theta)
     nodes[0] = lower
@@ -75,7 +77,7 @@ def _build_params(parameters, lmax):
     return pars
 
 
-def compute_spectra(parameters, lmax=9000):
+def compute_spectra(parameters, lmax=OUTPUT_LMAX):
     pars = _build_params(parameters, lmax)
     results = camb.get_results(pars)
     cmb = results.get_lensed_scalar_cls(CMB_unit="muK", raw_cl=True)
@@ -89,6 +91,7 @@ def compute_spectra(parameters, lmax=9000):
         "TT": (cmb[: lmax + 1, 0] * dl)[mask],
         "TE": (cmb[: lmax + 1, 3] * dl)[mask],
         "EE": (cmb[: lmax + 1, 1] * dl)[mask],
+        "BB": (cmb[: lmax + 1, 2] * dl)[mask],
         "PP": (lens[: lmax + 1, 0] * pp_factor)[mask],
     }
     return {f"{name}_dense": values for name, values in dense.items()}
