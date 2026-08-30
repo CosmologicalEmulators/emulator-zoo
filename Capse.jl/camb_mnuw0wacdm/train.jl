@@ -58,7 +58,37 @@ function lobatto_nodes(node_count; lower=2.0, upper=9500.0)
     return nodes
 end
 
-function training_nodes(file, spectrum, node_count)
+function hybrid_lowell_nodes(
+    lobatto_node_count;
+    dense_lower=2,
+    dense_upper=20,
+    upper=9500.0,
+)
+    dense_lower < dense_upper < upper ||
+        error("Hybrid grid requires dense_lower < dense_upper < upper")
+    low_nodes = collect(Float64(dense_lower):Float64(dense_upper - 1))
+    high_nodes = lobatto_nodes(
+        lobatto_node_count;
+        lower=Float64(dense_upper),
+        upper,
+    )
+    nodes = vcat(low_nodes, high_nodes)
+    all(diff(nodes) .> 0) || error("Hybrid training grid is not strictly increasing")
+    return nodes
+end
+
+function training_nodes(file, spectrum, lobatto_node_count; ee_dense_lowell_max=0)
+    if ee_dense_lowell_max > 0
+        spectrum == "EE" || error("The dense low-ell hybrid grid is only supported for EE")
+        return hybrid_lowell_nodes(
+            lobatto_node_count;
+            dense_lower=2,
+            dense_upper=ee_dense_lowell_max,
+            upper=last(file["axes/ell_dense"][:]),
+        )
+    end
+
+    node_count = lobatto_node_count
     grid_name = node_count == 192 ? "ell_192" : node_count == 256 ? "ell_256" : nothing
     if grid_name !== nothing && haskey(file, "axes/$grid_name")
         return Float64.(file["axes/$grid_name"][:])
@@ -66,7 +96,7 @@ function training_nodes(file, spectrum, node_count)
     return lobatto_nodes(node_count)
 end
 
-function load_camb_training_frame(path, spectrum, node_count, log_target)
+function load_camb_training_frame(path, spectrum, nodes, log_target)
     cubic_spline = pyimport("scipy.interpolate").CubicSpline
     h5open(path, "r") do file
         parameters_array = Array(file["parameters"][:, :])
@@ -75,12 +105,10 @@ function load_camb_training_frame(path, spectrum, node_count, log_target)
         all(valid) || error("HDF5 dataset contains invalid samples")
         dense_dataset = file["observables/$(spectrum)_dense"]
         ell_dense = Float64.(file["axes/ell_dense"][:])
-        nodes = training_nodes(file, spectrum, node_count)
         size(dense_dataset, 2) == length(ell_dense) || error("Dense axis length mismatch")
-        length(nodes) == node_count || error("Training node count mismatch")
 
         n_samples = size(parameters_array, 1)
-        targets = Matrix{Float64}(undef, n_samples, node_count)
+        targets = Matrix{Float64}(undef, n_samples, length(nodes))
         chunk_size = 256
         for first_index in 1:chunk_size:n_samples
             last_index = min(first_index + chunk_size - 1, n_samples)
@@ -129,10 +157,27 @@ function main()
     # Keep artifact subdirectories canonical even when the requested spectrum
     # selects a log target (e.g. TT_LOG is stored in the TT directory).
     output_directory = joinpath(output_root, spectrum)
-    default_node_count = spectrum == "PP" ? 192 : 256
-    node_count = parse(Int, get(ENV, "CAPSE_NODE_COUNT", string(default_node_count)))
+    default_lobatto_node_count = spectrum == "PP" ? 192 : 256
+    lobatto_node_count = parse(
+        Int,
+        get(ENV, "CAPSE_NODE_COUNT", string(default_lobatto_node_count)),
+    )
+    ee_dense_lowell_max = parse(Int, get(ENV, "CAPSE_EE_DENSE_LOWELL_MAX", "0"))
+    ee_dense_lowell_max >= 0 || error("CAPSE_EE_DENSE_LOWELL_MAX must be non-negative")
+    ee_dense_lowell_max == 0 || spectrum == "EE" ||
+        error("CAPSE_EE_DENSE_LOWELL_MAX can only be used while training EE")
 
-    frame = load_camb_training_frame(data_directory, spectrum, node_count, log_target)
+    training_axis = h5open(data_directory, "r") do file
+        training_nodes(
+            file,
+            spectrum,
+            lobatto_node_count;
+            ee_dense_lowell_max,
+        )
+    end
+    node_count = length(training_axis)
+
+    frame = load_camb_training_frame(data_directory, spectrum, training_axis, log_target)
     load_report = (loaded=nrow(frame), skipped=0)
     println("Loaded $(load_report.loaded), skipped $(load_report.skipped) samples")
 
@@ -164,7 +209,9 @@ function main()
             "parameters" => join(string.(INPUT_COLUMNS), ", "),
             "source" => "CAMB ACT-DR6 precision Mnu-w0-waCDM",
             "constraint" => "w0 + wa < -0.5",
-            "representation" => "Chebyshev-Lobatto nodes",
+            "representation" => ee_dense_lowell_max > 0 ?
+                "dense low-ell plus Chebyshev-Lobatto nodes" :
+                "Chebyshev-Lobatto nodes",
             "output_transform" => (spectrum == "PP" || log_target) ? "log" : "linear",
         ),
     )
@@ -172,9 +219,6 @@ function main()
     mkpath(output_directory)
     npzwrite(joinpath(output_directory, "inminmax.npy"), input_limits)
     npzwrite(joinpath(output_directory, "outminmax.npy"), output_limits)
-    training_axis = h5open(data_directory, "r") do file
-        training_nodes(file, spectrum, node_count)
-    end
     npzwrite(joinpath(output_directory, "l.npy"), training_axis)
     npzwrite(joinpath(output_directory, "train_indices.npy"), train_indices .- 1)
     npzwrite(joinpath(output_directory, "validation_indices.npy"), validation_indices .- 1)
@@ -221,9 +265,13 @@ function main()
         "train_sample_ids" => frame.sample_id[train_indices],
         "validation_sample_ids" => frame.sample_id[validation_indices],
         "node_count" => node_count,
+        "lobatto_node_count" => lobatto_node_count,
+        "dense_lowell_max" => ee_dense_lowell_max > 0 ? ee_dense_lowell_max : nothing,
         "interpolation_method" => "SciPy CubicSpline on dense ell grid at training time",
         "interpolation_source" => "$(spectrum)_dense",
-        "interpolation_grid" => node_count == 192 ? "ell_192" :
+        "interpolation_grid" => ee_dense_lowell_max > 0 ?
+            "dense_2_$(ee_dense_lowell_max)_plus_lobatto_$(lobatto_node_count)_$(ee_dense_lowell_max)_9500" :
+            node_count == 192 ? "ell_192" :
             node_count == 256 ? "ell_256" : "generated_lobatto_$node_count",
         "output_transform" => (spectrum == "PP" || log_target) ? "log" : "linear",
         "requested_spectrum" => requested_spectrum,
@@ -233,4 +281,4 @@ function main()
     println("Artifact: $output_directory")
 end
 
-main()
+abspath(PROGRAM_FILE) == (@__FILE__) && main()

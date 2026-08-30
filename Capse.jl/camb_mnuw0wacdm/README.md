@@ -45,6 +45,11 @@ julia -t 8 --project=. train.jl PP
 julia -t 8 --project=. train.jl TT_LOG
 julia -t 8 --project=. train.jl EE_LOG
 
+# EE-only hybrid grid: dense integer ell=2:20 followed by 256 Lobatto nodes
+# on ell=20:9500 (274 outputs after removing the duplicate ell=20).
+CAPSE_EE_DENSE_LOWELL_MAX=20 CAPSE_NODE_COUNT=256 \
+    julia -t 8 --project=. train.jl EE_LOG data/dataset.h5 artifacts/ee_hybrid
+
 julia --project=. validate.jl TT data/camb_mnuw0wacdm_1000 artifacts/camb_mnuw0wacdm_1000/TT
 ```
 
