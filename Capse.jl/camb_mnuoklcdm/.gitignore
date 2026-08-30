@@ -1,0 +1,7 @@
+Manifest.toml
+data/
+artifacts/
+logs/
+__pycache__/
+.CondaPkg/
+*.pyc
