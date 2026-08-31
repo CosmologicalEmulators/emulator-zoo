@@ -11,8 +11,8 @@ using .CapseCambMnuOkGeneration
     @test design == repeated
     @test size(design) == (length(PARAMETER_NAMES), n_samples)
     @test PARAMETER_NAMES[end] == "OmegaK"
-    @test LOWER_BOUNDS[end] == -0.2
-    @test UPPER_BOUNDS[end] == 0.2
+    @test LOWER_BOUNDS[end] == -0.1
+    @test UPPER_BOUNDS[end] == 0.1
     @test OUTPUT_LMAX == 9500
     @test all(LOWER_BOUNDS .< minimum(design; dims=2)[:, 1])
     @test all(maximum(design; dims=2)[:, 1] .< UPPER_BOUNDS)

@@ -35,7 +35,7 @@ class CambWorkerTests(unittest.TestCase):
         self.assertEqual(pars.DarkEnergy.wa, 0.0)
 
     def test_curvature_is_propagated(self):
-        for omega_k in (-0.2, 0.0, 0.2):
+        for omega_k in (-0.1, 0.0, 0.1):
             with self.subTest(OmegaK=omega_k):
                 point = dict(FIDUCIAL_POINT, OmegaK=omega_k)
                 pars = camb_worker._build_params(point, 500)
@@ -44,7 +44,7 @@ class CambWorkerTests(unittest.TestCase):
                 self.assertEqual(pars.DarkEnergy.wa, 0.0)
 
     def test_boundary_spectra(self):
-        for omega_k in (-0.2, 0.2):
+        for omega_k in (-0.1, 0.1):
             with self.subTest(OmegaK=omega_k):
                 point = dict(FIDUCIAL_POINT, OmegaK=omega_k)
                 spectra = camb_worker.compute_spectra(point, lmax=500)

@@ -1,7 +1,7 @@
 # CAMB Mnu-OmegaK-LambdaCDM Capse pipeline
 
 This pipeline varies `ln10As`, `ns`, `tau`, `H0`, `omega_b`, `omega_c`,
-`Mnu`, and `OmegaK`. It fixes `w0=-1` and `wa=0`; `OmegaK` spans `[-0.2, 0.2]`.
+`Mnu`, and `OmegaK`. It fixes `w0=-1` and `wa=0`; `OmegaK` spans `[-0.1, 0.1]`.
 See `DESIGN.md` for the complete model and numerical contract.
 
 ```bash
@@ -28,7 +28,7 @@ julia --project=. smoke_test.jl
 
 ```bash
 export PROJECT_DIR=/home/mbonici/test_emu/emulator-zoo/Capse.jl/camb_mnuoklcdm
-export OUTPUT=/project/rrg-wperciva/mbonici/emulator_training/Capse/camb_mnuoklcdm/camb_mnuoklcdm_20000
+export OUTPUT=/project/rrg-wperciva/mbonici/emulator_training/Capse/camb_mnuoklcdm/camb_mnuoklcdm_omk01_20000
 
 cd "$PROJECT_DIR"
 sbatch --account=rrg-wperciva \

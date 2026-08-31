@@ -214,7 +214,7 @@ function main()
             "spectrum" => spectrum,
             "parameters" => join(string.(INPUT_COLUMNS), ", "),
             "source" => "CAMB ACT-DR6 precision Mnu-OmegaK-LambdaCDM",
-            "model" => "OmegaK variable in [-0.2, 0.2], w0=-1, wa=0",
+            "model" => "OmegaK variable in [-0.1, 0.1], w0=-1, wa=0",
             "representation" => ee_dense_lowell_max > 0 ?
                 "dense low-ell plus Chebyshev-Lobatto nodes" :
                 "Chebyshev-Lobatto nodes",

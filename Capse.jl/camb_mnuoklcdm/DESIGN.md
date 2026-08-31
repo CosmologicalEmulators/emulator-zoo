@@ -12,7 +12,7 @@ H0       [50, 90]
 omega_b  [0.02, 0.025]
 omega_c  [0.08, 0.16]
 Mnu      [0, 0.5] eV
-OmegaK   [-0.2, 0.2]
+OmegaK   [-0.1, 0.1]
 ```
 
 Dark energy is fixed to a cosmological constant, `w0=-1` and `wa=0`. CAMB
@@ -40,7 +40,7 @@ ablation.
 ## Validation gates
 
 1. Deterministic design and full rectangular-domain coverage.
-2. Direct CAMB tests at `OmegaK=-0.2`, `0`, and `0.2`, including verification
+2. Direct CAMB tests at `OmegaK=-0.1`, `0`, and `0.1`, including verification
    that `pars.omk` is propagated and dark energy remains Lambda.
 3. Dense spectra must have the expected shape and finite positive TT/EE/BB/PP.
 4. A 50-sample generation/training smoke test exercises the public artifact

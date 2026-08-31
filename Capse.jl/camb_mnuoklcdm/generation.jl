@@ -8,8 +8,8 @@ export PARAMETER_NAMES, LOWER_BOUNDS, UPPER_BOUNDS, DESIGN_SEED, OUTPUT_LMAX
 export create_design, initialize_backend, backend_configuration, compute_observables, static_axes
 
 const PARAMETER_NAMES = ["ln10As", "ns", "tau", "H0", "omega_b", "omega_c", "Mnu", "OmegaK"]
-const LOWER_BOUNDS = [2.5, 0.85, 0.02, 50.0, 0.02, 0.08, 0.0, -0.2]
-const UPPER_BOUNDS = [3.5, 1.05, 0.15, 90.0, 0.025, 0.16, 0.5, 0.2]
+const LOWER_BOUNDS = [2.5, 0.85, 0.02, 50.0, 0.02, 0.08, 0.0, -0.1]
+const UPPER_BOUNDS = [3.5, 1.05, 0.15, 90.0, 0.025, 0.16, 0.5, 0.1]
 const DESIGN_SEED = 20260735
 const OUTPUT_LMAX = 9500
 const CAMB_DIRECTORY = @__DIR__
