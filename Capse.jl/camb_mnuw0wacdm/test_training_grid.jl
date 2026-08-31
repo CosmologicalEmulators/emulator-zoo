@@ -5,6 +5,11 @@ include(joinpath(@__DIR__, "train.jl"))
 @testset "EE hybrid low-ell training grid" begin
     nodes = hybrid_lowell_nodes(256; dense_lower=2, dense_upper=20, upper=9500.0)
 
+    @test default_dense_lowell_max("EE") == 20
+    @test default_dense_lowell_max("TT") == 0
+    @test default_dense_lowell_max("TE") == 0
+    @test default_dense_lowell_max("BB") == 0
+    @test default_dense_lowell_max("PP") == 0
     @test length(nodes) == 274
     @test nodes[1:19] == collect(2.0:20.0)
     @test nodes[20] > 20.0

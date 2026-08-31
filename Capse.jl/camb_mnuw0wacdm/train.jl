@@ -77,6 +77,8 @@ function hybrid_lowell_nodes(
     return nodes
 end
 
+default_dense_lowell_max(spectrum) = spectrum == "EE" ? 20 : 0
+
 function training_nodes(file, spectrum, lobatto_node_count; ee_dense_lowell_max=0)
     if ee_dense_lowell_max > 0
         spectrum == "EE" || error("The dense low-ell hybrid grid is only supported for EE")
@@ -162,7 +164,11 @@ function main()
         Int,
         get(ENV, "CAPSE_NODE_COUNT", string(default_lobatto_node_count)),
     )
-    ee_dense_lowell_max = parse(Int, get(ENV, "CAPSE_EE_DENSE_LOWELL_MAX", "0"))
+    default_ee_dense_lowell_max = default_dense_lowell_max(spectrum)
+    ee_dense_lowell_max = parse(
+        Int,
+        get(ENV, "CAPSE_EE_DENSE_LOWELL_MAX", string(default_ee_dense_lowell_max)),
+    )
     ee_dense_lowell_max >= 0 || error("CAPSE_EE_DENSE_LOWELL_MAX must be non-negative")
     ee_dense_lowell_max == 0 || spectrum == "EE" ||
         error("CAPSE_EE_DENSE_LOWELL_MAX can only be used while training EE")
