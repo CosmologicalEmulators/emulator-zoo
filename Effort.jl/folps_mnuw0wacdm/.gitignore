@@ -1,0 +1,6 @@
+Manifest.toml
+data/
+artifacts/
+logs/
+__pycache__/
+*.pyc
